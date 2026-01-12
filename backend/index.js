@@ -27,13 +27,14 @@ console.log("🔥 BACKEND BOOTED AT", new Date().toISOString());
 
 dotenv.config();//for loading env variables
 const app = express();//making instance of express
- //middlewares that run in between response and request
+//middlewares that run in between response and request
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
       "https://divyaveda.in",
-      "https://www.divyaveda.in"
+      "https://www.divyaveda.in",
+      "http://localhost:5175"
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

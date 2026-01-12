@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import Input from "../components/Input";
+import Button from "../components/Button";
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -10,6 +12,7 @@ const Register = () => {
     phone_number: ""
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -20,71 +23,90 @@ const Register = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     setError("");
-    try {
-      await register(form);
+    setLoading(true);
+    
+    const success = await register(form);
+    setLoading(false);
+    
+    if (success) {
       navigate("/");
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+    } else {
+      // Error handled in context/toast, but concise fallback here
+      setError("Registration failed. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Create Account</h2>
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white">Create an account</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-blue-500 hover:text-blue-400">
+              Sign in
+            </Link>
+          </p>
+        </div>
 
-        {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 p-8 rounded-2xl shadow-xl">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg mb-6 text-sm">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Name</label>
-            <input
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Full Name"
               name="username"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               value={form.username}
               onChange={handleChange}
               required
+              placeholder="John Doe"
             />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Email</label>
-            <input
+            
+            <Input
+              label="Email address"
               type="email"
               name="email"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               value={form.email}
               onChange={handleChange}
               required
+              placeholder="you@example.com"
             />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Phone</label>
-            <input
+
+            <Input
+              label="Phone Number"
+              type="tel"
               name="phone_number"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               value={form.phone_number}
               onChange={handleChange}
+              placeholder="+1 (555) 000-0000"
             />
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2">Password</label>
-            <input
+
+            <Input
+              label="Password"
               type="password"
               name="password"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               value={form.password}
               onChange={handleChange}
               required
+              placeholder="Create a strong password"
             />
-          </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-200"
-          >
-            Sign Up
-          </button>
-        </form>
+            <Button type="submit" className="w-full" isLoading={loading}>
+              Create account
+            </Button>
+          </form>
+          
+          <p className="mt-6 text-xs text-center text-slate-500">
+            By signing up, you agree to our{' '}
+            <a href="#" className="underline hover:text-slate-400">Terms of Service</a>
+            {' '}and{' '}
+            <a href="#" className="underline hover:text-slate-400">Privacy Policy</a>.
+          </p>
+        </div>
       </div>
     </div>
   );

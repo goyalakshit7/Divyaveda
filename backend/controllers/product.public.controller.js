@@ -1,6 +1,7 @@
 import { Product } from "../models/product.master.js";
 import { Category } from "../models/category.master.js";
 import { SubCategory } from "../models/subcategory.master.js";
+import { RelatedProduct } from "../models/relatedProduct.master.js";
 
 /* ================= GET ALL PRODUCTS (PUBLIC) ================= */
 export const getAllProducts = async (req, res) => {
@@ -10,7 +11,10 @@ export const getAllProducts = async (req, res) => {
       limit = 20,
       category,
       subcategory,
-      search
+      search,
+      minPrice,
+      maxPrice,
+      sort
     } = req.query;
 
     const query = { isActive: true };
@@ -22,12 +26,22 @@ export const getAllProducts = async (req, res) => {
       query.name = { $regex: search, $options: "i" };
     }
 
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    let sortOption = { created_at: -1 };
+    if (sort === "price_asc") sortOption = { price: 1 };
+    if (sort === "price_desc") sortOption = { price: -1 };
+
     const products = await Product.find(query)
       .populate("category_id", "name")
       .populate("subcategory_id", "name")
       .skip((page - 1) * limit)
       .limit(Number(limit))
-      .sort({ created_at: -1 });
+      .sort(sortOption);
 
     const total = await Product.countDocuments(query);
 
@@ -59,6 +73,28 @@ export const getProductById = async (req, res) => {
     }
 
     res.json(product);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* ================= GET RELATED PRODUCTS ================= */
+export const getRelatedProducts = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const related = await RelatedProduct.find({ product_id: id })
+      .populate({
+        path: "related_product_id",
+        select: "name price main_image diplayPrice"
+      });
+
+    // Extract the actual product data from the relationship
+    const relatedProducts = related
+      .map(item => item.related_product_id)
+      .filter(item => item !== null); // Filter out any nulls incase product was deleted
+
+    res.json(relatedProducts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

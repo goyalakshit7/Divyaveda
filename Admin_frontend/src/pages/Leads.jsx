@@ -22,7 +22,7 @@ const Leads = () => {
   const [staffMembers, setStaffMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
-  const [summary, setSummary] = useState({ total: 0, converted: 0, pending: 0 });
+  const [summary, setSummary] = useState({ total: 0, converted: 0, pending: 0, interested: 0 });
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -91,30 +91,15 @@ const Leads = () => {
       if (filters.interest_level) params.set("interest_level", filters.interest_level);
       if (filters.req_time) params.set("req_time", filters.req_time);
 
-      if (filters.assigned) {
-          params.set("assigned", filters.assigned); 
-          if (filters.assigned === "assigned") params.set("is_assigned", "true");
-          if (filters.assigned === "unassigned") params.set("is_assigned", "false");
-      }
-
-      if (filters.from_date) {
-          params.set("from_date", filters.from_date);
-          params.set("startDate", filters.from_date);
-          params.set("date_from", filters.from_date); 
-          params.set("created_date_gte", filters.from_date);
-      }
-      if (filters.to_date) {
-          params.set("to_date", filters.to_date);
-          params.set("endDate", filters.to_date);
-          params.set("date_to", filters.to_date);
-          params.set("created_date_lte", filters.to_date);
-      }
+      if (filters.assigned) params.set("assigned", filters.assigned);
+      if (filters.from_date) params.set("from_date", filters.from_date);
+      if (filters.to_date) params.set("to_date", filters.to_date);
 
       const res = await api.get(`/admin/leads?${params.toString()}`);
-      const { data = [], total = 0, convertedCount = 0, pendingCount = 0, totalPages: tp = 1, page: p = 1 } = res.data || {};
+      const { data = [], total = 0, convertedCount = 0, pendingCount = 0, interestedCount = 0, totalPages: tp = 1, page: p = 1 } = res.data || {};
       
       setLeads(data);
-      setSummary({ total, converted: convertedCount, pending: pendingCount });
+      setSummary({ total, converted: convertedCount, pending: pendingCount, interested: interestedCount });
       setTotalPages(tp);
       setPage(p);
     } catch (e) {
@@ -259,7 +244,7 @@ const Leads = () => {
   const getLatestRemark = (remarks) => {
     if (Array.isArray(remarks) && remarks.length > 0) {
         const last = remarks[remarks.length - 1];
-        return typeof last === 'object' ? last.text : last;
+        return typeof last === 'object' ? last.comment : last;
     }
     return typeof remarks === 'string' ? remarks : "-";
   };
@@ -328,7 +313,7 @@ const Leads = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className={`${cardClass} rounded-xl p-5 shadow-sm flex flex-col items-center sm:items-start`}>
           <div className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-gray-500"}`}>Total Leads</div>
           <div className={`text-3xl font-bold mt-1 ${isDark ? "text-white" : "text-gray-900"}`}>{summary.total}</div>
@@ -340,6 +325,10 @@ const Leads = () => {
         <div className={`${cardClass} rounded-xl p-5 shadow-sm flex flex-col items-center sm:items-start border-l-4 border-l-yellow-400`}>
           <div className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-gray-500"}`}>Pending</div>
           <div className={`text-3xl font-bold mt-1 ${isDark ? "text-yellow-400" : "text-yellow-600"}`}>{summary.pending}</div>
+        </div>
+        <div className={`${cardClass} rounded-xl p-5 shadow-sm flex flex-col items-center sm:items-start border-l-4 border-l-blue-500`}>
+          <div className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-gray-500"}`}>Interested</div>
+          <div className={`text-3xl font-bold mt-1 ${isDark ? "text-blue-400" : "text-blue-600"}`}>{summary.interested}</div>
         </div>
       </div>
 

@@ -11,76 +11,116 @@ import { B2B } from "../../models/b2b.master.js";
 /* =====================================================
    1. GET ALL LEADS (Pagination + Filters + RBAC)
 ===================================================== */
+/* =====================================================
+   1. GET ALL LEADS (FIXED & DEBUGGED)
+===================================================== */
 export const getAllLeads = async (req, res) => {
   try {
+    console.log("🔍 GET ALL LEADS QUERY:", req.query);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const skip = (page - 1) * limit;
+
     const {
-      page = 1,
-      limit = 25,
       search,
       platform,
       segment,
-      lead_status,
-      client_profile,
       interest_level,
-      req_time,
+      client_profile,
+      from_date,
+      to_date,
       assigned,
-      call_outcome, // NEW: Filter param
-      startDate,
-      endDate
+      converted,
     } = req.query;
+
+    const user = await User.findById(req.user.id).populate("role_id");
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    const roleName = user?.role_id?.role_name || "";
+    const isManagerOrAbove =
+      user.isSuperAdmin === true ||
+      ["Manager", "Admin", "Super Admin"].includes(roleName);
 
     const query = { isActive: true };
 
-    // ... (Keep existing Search, Dropdown, and Assignment logic) ...
-    if (search) { /* ... */ }
+    // 🔐 ROLE-BASED VISIBILITY
+    if (!isManagerOrAbove) {
+      query.assigned_to = user._id;
+    }
+
+    // 🔎 SEARCH
+    if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      query.$or = [
+        { full_name: searchRegex },
+        { phone: searchRegex },
+        { email: searchRegex },
+        { company: searchRegex },
+      ];
+    }
+
+    // 🎯 EXACT MATCH FILTERS
     if (platform) query.platform = platform;
     if (segment) query.segment = segment;
-    if (lead_status) query.lead_status = lead_status;
-    if (client_profile) query.client_profile = client_profile;
     if (interest_level) query.interest_level = interest_level;
-    if (req_time) query.req_time = req_time;
-    if (call_outcome) query.call_outcome = call_outcome; // NEW: Filter logic
+    if (client_profile) query.client_profile = client_profile;
 
-    // ... (Keep Date Fix and Role-based visibility logic) ...
+    // bust logic for assignment
+    if (assigned) {
+      if (assigned === "assigned") {
+        query.assigned_to = { $ne: null };
+      } else if (assigned === "unassigned") {
+        query.assigned_to = null;
+      } else {
+        query.assigned_to = assigned; // specific user ID
+      }
+    }
 
-    // --- Execute Query ---
-    const leads = await Lead.find(query)
-      .populate("assigned_to", "name email")
-      .populate("converted_by", "name email")
-      .sort({ created_date: -1 }) 
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    if (typeof converted !== "undefined") {
+      query.converted = converted === "true";
+    }
 
-    // --- UPDATED COUNTS ---
+    // 📅 DATE FILTER
+    if (from_date || to_date) {
+      query.createdAt = {};
+      if (from_date) query.createdAt.$gte = new Date(from_date);
+      if (to_date) {
+        const end = new Date(to_date);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
     const total = await Lead.countDocuments(query);
     const convertedCount = await Lead.countDocuments({ ...query, converted: true });
+    const interestedCount = await Lead.countDocuments({ ...query, interest_level: { $in: ["i", "hi"] } });
     const pendingCount = await Lead.countDocuments({ ...query, converted: false });
-    
-    // NEW: Calculate specific counts for the summary cards
-    const connectedCount = await Lead.countDocuments({ ...query, call_outcome: "connected" });
-    const interestedCount = await Lead.countDocuments({ 
-      ...query, 
-      $or: [
-        { lead_status: "INTERESTED" }, 
-        { interest_level: { $in: ["i", "hi"] } } 
-      ] 
-    });
+
+    const leads = await Lead.find(query)
+      .populate("assigned_to", "name email")
+      .populate("created_by", "name email")
+      .populate("converted_by", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json({
       data: leads,
       total,
       convertedCount,
+      interestedCount,
       pendingCount,
-      connectedCount, // Send to frontend
-      interestedCount, // Send to frontend
+      page,
       totalPages: Math.ceil(total / limit),
-      page: Number(page)
+      limit
     });
-  } catch (error) {
-    console.error("Get Leads Error:", error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    console.error("❌ getAllLeads error:", err);
+    res.status(500).json({ message: err.message });
   }
 };
+
+
 /* =====================================================
    2. CREATE LEAD (Manual)
 ===================================================== */
@@ -111,7 +151,7 @@ export const createLead = async (req, res) => {
 };
 
 /* =====================================================
-   3. UPDATE LEAD (FIXED ENUM HANDLING)
+   3. UPDATE LEAD
 ===================================================== */
 export const updateLead = async (req, res) => {
   try {
@@ -166,7 +206,7 @@ export const updateLead = async (req, res) => {
     if (typeof body.converted === "boolean") {
       lead.converted = body.converted;
       if (body.converted) {
-        // 🔥 FIX: Ensure we use the explicitly passed ID or current user ID
+        // Use the explicitly passed ID (from dropdown) OR fallback to current user
         lead.converted_by = body.converted_by || currentUserId;
         lead.converted_date = new Date();
       } else {
@@ -178,7 +218,7 @@ export const updateLead = async (req, res) => {
     lead.last_modified_date = new Date();
     await lead.save();
 
-    // 🔥 AUTO CREATE B2B (Fixed Logic)
+    // AUTO CREATE B2B if Converted
     if (lead.converted === true) {
       const existingB2B = await B2B.findOne({ lead_id: lead._id });
       if (!existingB2B) {
@@ -188,8 +228,7 @@ export const updateLead = async (req, res) => {
           mobile: lead.phone,
           email: lead.email,
           company: lead.company,
-          // 🔥 IMPORTANT: Use the ID that was just saved to the lead
-          converted_by: lead.converted_by, 
+          converted_by: lead.converted_by,
           created_by: currentUserId,
           order_status: "OPEN",
           total_order_value: 0,
@@ -209,7 +248,6 @@ export const updateLead = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 /* =====================================================
    4. GET STAFF MEMBERS
