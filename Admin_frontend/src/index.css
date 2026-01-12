@@ -62,12 +62,14 @@
 * {
   box-sizing: border-box;
 }
+
 select option {
   background-color: var(--bg-card);
   color: var(--text-primary);
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -88,7 +90,11 @@ body {
 }
 
 /* Prevent horizontal scroll */
-.container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl {
+.container,
+.max-w-7xl,
+.max-w-6xl,
+.max-w-5xl,
+.max-w-4xl {
   max-width: 100%;
   width: 100%;
 }
@@ -104,4 +110,25 @@ body {
   .table-wrapper {
     display: block;
   }
+
+  /* Prevent iOS zoom on inputs */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS Safe Area & Viewport Height */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Dynamic viewport height for iOS */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Scrollbar styling for mobile tables */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }

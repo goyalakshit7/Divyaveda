@@ -31,6 +31,8 @@ export const getAllLeads = async (req, res) => {
       to_date,
       assigned,
       converted,
+      lead_status,
+      req_time
     } = req.query;
 
     const user = await User.findById(req.user.id).populate("role_id");
@@ -64,6 +66,9 @@ export const getAllLeads = async (req, res) => {
     if (segment) query.segment = segment;
     if (interest_level) query.interest_level = interest_level;
     if (client_profile) query.client_profile = client_profile;
+    if (req.query.call_outcome) query.call_outcome = req.query.call_outcome;
+    if (lead_status) query.lead_status = lead_status;
+    if (req_time) query.req_time = req_time;
 
     // bust logic for assignment
     if (assigned) {
@@ -81,13 +86,32 @@ export const getAllLeads = async (req, res) => {
     }
 
     // 📅 DATE FILTER
+    // 📅 DATE FILTER (Check BOTH created_date string and createdAt timestamp)
     if (from_date || to_date) {
-      query.createdAt = {};
-      if (from_date) query.createdAt.$gte = new Date(from_date);
+      const dateConditions = [];
+
+      // 1. Check created_date (String "YYYY-MM-DD")
+      const stringCondition = {};
+      if (from_date) stringCondition.$gte = from_date;
+      if (to_date) stringCondition.$lte = to_date;
+      if (Object.keys(stringCondition).length > 0) {
+        dateConditions.push({ created_date: stringCondition });
+      }
+
+      // 2. Check createdAt (Date object)
+      const dateCondition = {};
+      if (from_date) dateCondition.$gte = new Date(from_date);
       if (to_date) {
         const end = new Date(to_date);
         end.setHours(23, 59, 59, 999);
-        query.createdAt.$lte = end;
+        dateCondition.$lte = end;
+      }
+      if (Object.keys(dateCondition).length > 0) {
+        dateConditions.push({ createdAt: dateCondition });
+      }
+
+      if (dateConditions.length > 0) {
+        query.$or = (query.$or || []).concat(dateConditions);
       }
     }
 
@@ -126,7 +150,7 @@ export const getAllLeads = async (req, res) => {
 ===================================================== */
 export const createLead = async (req, res) => {
   try {
-    const { full_name, phone, email, platform, lead_status, company_name } = req.body;
+    const { full_name, phone, email, platform, lead_status, company_name, created_date } = req.body;
 
     const currentUser = await User.findById(req.user.id).populate("role_id");
     const isStaff = currentUser?.role_id?.role_name === "Staff";
@@ -138,6 +162,7 @@ export const createLead = async (req, res) => {
       platform,
       company: company_name,
       lead_status: lead_status || "NEW",
+      created_date: created_date || new Date().toISOString().split('T')[0],
       created_by: req.user.id,
       assigned_to: isStaff ? req.user.id : null,
       source: "MANUAL",

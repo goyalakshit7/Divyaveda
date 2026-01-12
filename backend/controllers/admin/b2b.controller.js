@@ -31,14 +31,16 @@ const getVisibleLeadIds = async (user) => {
 
 export const listB2B = async (req, res) => {
   try {
-    const { 
-      search, 
-      order_status, 
-      from_date, 
-      to_date, 
-      platform, 
-      segment, 
-      lead_id 
+    const {
+      search,
+      order_status,
+      from_date,
+      to_date,
+      platform,
+      segment,
+      lead_id,
+      page = 1,
+      limit = 25
     } = req.query;
 
     const user = await User.findById(req.user.id).populate("role_id");
@@ -85,21 +87,52 @@ export const listB2B = async (req, res) => {
 
       const matchingLeads = await Lead.find(leadCriteria).select("_id");
       const leadIds = matchingLeads.map(l => l._id);
-      
+
       // Merge with existing query
       query.lead_id = { $in: leadIds };
     }
 
     // Execute Query
+    const skip = (page - 1) * limit;
+    const total = await B2B.countDocuments(query);
+
+    // Calculate Stats (Aggregation)
+    const statsResult = await B2B.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalValue: { $sum: "$total_order_value" },
+          receivedValue: { $sum: "$amount_received" },
+          pendingValue: { $sum: "$amount_pending" }
+        }
+      }
+    ]);
+
+    const stats = statsResult[0] || { totalValue: 0, receivedValue: 0, pendingValue: 0 };
+
     const records = await B2B.find(query)
-      .populate("lead_id")
+      .populate({
+        path: "lead_id",
+        populate: [
+          { path: "assigned_to", select: "name email" },
+          { path: "converted_by", select: "name email" },
+          { path: "created_by", select: "name email" }
+        ]
+      })
       .populate("converted_by", "name email")
       .populate("created_by", "name email")
-      .sort({ createdAt: -1 });
+      .populate("assigned_to", "name email")
+      .sort({ sr_no: -1 }) // Sort by Sr No desc
+      .skip(skip)
+      .limit(Number(limit));
 
-    res.json({ 
-      data: records, 
-      total: records.length 
+    res.json({
+      data: records,
+      stats, // Return stats
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
     console.error("❌ listB2B error:", error);
@@ -120,7 +153,7 @@ export const createB2B = async (req, res) => {
     }
 
     const existing = await B2B.findOne({ lead_id });
-    
+
 
     const lead = await Lead.findById(lead_id);
     if (!lead) {
@@ -160,6 +193,7 @@ export const createB2B = async (req, res) => {
 
       converted_by: lead.converted_by || req.user.id,
       created_by: lead.created_by || req.user.id,
+      assigned_to: lead.assigned_to || req.user.id, // Default to lead assignee or current user
       additional_remarks: req.body.additional_remarks || null,
     });
 
@@ -198,12 +232,20 @@ export const updateB2B = async (req, res) => {
       "amount_received",
       "last_receipt_date",
       "order_status",
+      "order_status",
       "additional_remarks",
+      "assigned_to",
+      "converted_by",
+      "created_by"
     ];
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+        if (["assigned_to", "converted_by", "created_by"].includes(field) && req.body[field] === "") {
+          updates[field] = null;
+        } else {
+          updates[field] = req.body[field];
+        }
       }
     });
 

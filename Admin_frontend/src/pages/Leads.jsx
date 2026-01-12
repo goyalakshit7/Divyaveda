@@ -41,6 +41,7 @@ const Leads = () => {
     search: "",
     from_date: "",
     to_date: "",
+    call_outcome: "",
   });
 
   // --- EDIT FORM STATE ---
@@ -94,6 +95,7 @@ const Leads = () => {
       if (filters.assigned) params.set("assigned", filters.assigned);
       if (filters.from_date) params.set("from_date", filters.from_date);
       if (filters.to_date) params.set("to_date", filters.to_date);
+      if (filters.call_outcome) params.set("call_outcome", filters.call_outcome);
 
       const res = await api.get(`/admin/leads?${params.toString()}`);
       const { data = [], total = 0, convertedCount = 0, pendingCount = 0, interestedCount = 0, totalPages: tp = 1, page: p = 1 } = res.data || {};
@@ -131,30 +133,56 @@ const Leads = () => {
     filters.req_time,
     filters.assigned, 
     filters.from_date, 
-    filters.to_date
+    filters.to_date,
+    filters.call_outcome
   ]);
 
-  const openModal = (lead) => {
+  const openModal = (lead = null) => {
     setEditingLead(lead);
-    setFormData({
-      full_name: lead.full_name || "",
-      phone: lead.phone || "",
-      email: lead.email || "",
-      location: lead.location || "",
-      segment: lead.segment || "",
-      company: lead.company || "",
-      interest_level: lead.interest_level || "",
-      remarks: "", 
-      req_time: lead.req_time || "",
-      call_outcome: lead.call_outcome || "",
-      lead_status: lead.lead_status || "CREATED",
-      last_followed_up: lead.last_followed_up ? lead.last_followed_up.substring(0, 10) : "",
-      next_follow_up: lead.next_follow_up ? lead.next_follow_up.substring(0, 10) : "",
-      assigned_to: lead.assigned_to?._id || "",
-      converted_by: lead.converted_by?._id || "",
-      converted: lead.converted || false,
-      client_profile: lead.client_profile || ""
-    });
+    if (lead) {
+        // EDIT MODE
+        setFormData({
+            full_name: lead.full_name || "",
+            phone: lead.phone || "",
+            email: lead.email || "",
+            location: lead.location || "",
+            segment: lead.segment || "",
+            company: lead.company || "",
+            interest_level: lead.interest_level || "",
+            remarks: "", 
+            req_time: lead.req_time || "",
+            call_outcome: lead.call_outcome || "",
+            lead_status: lead.lead_status || "CREATED",
+            last_followed_up: lead.last_followed_up ? lead.last_followed_up.substring(0, 10) : "",
+            next_follow_up: lead.next_follow_up ? lead.next_follow_up.substring(0, 10) : "",
+            assigned_to: lead.assigned_to?._id || "",
+            converted_by: lead.converted_by?._id || "",
+            converted: lead.converted || false,
+            client_profile: lead.client_profile || ""
+        });
+    } else {
+        // CREATE MODE
+        setFormData({
+            full_name: "",
+            phone: "",
+            email: "",
+            location: "",
+            segment: "",
+            company: "",
+            interest_level: "",
+            remarks: "", 
+            req_time: "",
+            call_outcome: "",
+            lead_status: "NEW", // Default for new leads
+            created_date: new Date().toISOString().split('T')[0], // Default to today
+            last_followed_up: "",
+            next_follow_up: "",
+            assigned_to: "", // Backend handles assignment logic usually, or can leave empty
+            converted_by: "",
+            converted: false,
+            client_profile: ""
+        });
+    }
     setIsModalOpen(true);
   };
 
@@ -167,12 +195,24 @@ const Leads = () => {
         next_follow_up: formData.next_follow_up || null,
       };
 
-      await api.put(`/admin/leads/${editingLead._id}`, payload);
+      if (editingLead) {
+          // UPDATE EXISTING
+          await api.put(`/admin/leads/${editingLead._id}`, payload);
+      } else {
+          // CREATE NEW
+          // Rename 'company' to 'company_name' if backend expects it (check backend controller logic)
+          // Backend createLead expects: full_name, phone, email, platform, lead_status, company_name
+          const createPayload = {
+              ...payload,
+              company_name: payload.company
+          };
+          await api.post("/admin/leads", createPayload);
+      }
       setIsModalOpen(false);
       setEditingLead(null);
-      loadLeads(page);
+      loadLeads(page); // reload current page
     } catch (e) {
-      alert("Update Failed: " + (e.response?.data?.message || e.message));
+      alert("Operation Failed: " + (e.response?.data?.message || e.message));
     }
   };
 
@@ -241,12 +281,31 @@ const Leads = () => {
     }
   };
 
-  const getLatestRemark = (remarks) => {
+   const getLatestRemark = (remarks) => {
     if (Array.isArray(remarks) && remarks.length > 0) {
         const last = remarks[remarks.length - 1];
         return typeof last === 'object' ? last.comment : last;
     }
     return typeof remarks === 'string' ? remarks : "-";
+  };
+
+  const getDaysSince = (dateString) => {
+    if (!dateString) return "-";
+    const lastDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today - lastDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays + " days";
+  };
+
+  const getInterestLabel = (val) => {
+    switch(val) {
+        case 'hi': return 'Highly Interested';
+        case 'i': return 'Interested';
+        case 'mi': return 'Marginal Interest';
+        case 'ni': return 'Not Interested';
+        default: return val || "-";
+    }
   };
 
   // --- DYNAMIC STYLES BASED ON LOCAL TOGGLE ---
@@ -259,8 +318,8 @@ const Leads = () => {
     : "bg-white border border-gray-200";
 
   const inputClass = isDark 
-    ? "w-full bg-slate-950 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none transition-colors"
-    : "w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none transition-colors";
+    ? "w-full bg-slate-950 border border-slate-700 text-white text-base md:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none transition-colors"
+    : "w-full bg-white border border-gray-300 text-gray-900 text-base md:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none transition-colors";
 
   const labelClass = isDark 
     ? "block mb-1 text-xs font-semibold text-slate-400 uppercase"
@@ -299,6 +358,9 @@ const Leads = () => {
           <button onClick={() => loadLeads(page)} className={`${isDark ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"} border px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2`}>
             🔄 <span className="hidden sm:inline">Refresh</span>
           </button>
+          <button onClick={() => openModal(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+            ➕ <span className="hidden sm:inline">New Lead</span>
+          </button>
           {admin?.isSuperAdmin === true && (
             <>
                 <button onClick={syncSheet} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
@@ -333,8 +395,8 @@ const Leads = () => {
       </div>
 
       {/* FILTERS */}
-      <div className={`${cardClass} p-4 rounded-xl shadow-sm transition-colors`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className={`${cardClass} p-3 rounded-xl shadow-sm transition-colors`}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {/* Search */}
             <input 
               placeholder="Search name/phone/email..." 
@@ -349,6 +411,7 @@ const Leads = () => {
                 <option value="ig">Instagram</option>
                 <option value="inbound">Inbound</option>
                 <option value="outbound">Outbound</option>
+                <option value="pharmavends">pharmavends</option>
                 <option value="others">Others</option>
             </select>
             
@@ -369,6 +432,12 @@ const Leads = () => {
                 <option value="doctor">Doctor</option>
                 <option value="clinic">Clinic</option>
                 <option value="others">Others</option>
+            </select>
+
+            <select value={filters.call_outcome} onChange={(e) => handleFilterChange("call_outcome", e.target.value)} className={inputClass}>
+                <option value="">Call Outcome</option>
+                <option value="connected">Connected</option>
+                <option value="not_connected">Not Connected</option>
             </select>
 
             <select value={filters.lead_status} onChange={(e) => handleFilterChange("lead_status", e.target.value)} className={inputClass}>
@@ -406,11 +475,11 @@ const Leads = () => {
 
             <div className="flex flex-col">
                 <label className={`text-[10px] uppercase mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>From</label>
-                <input type="date" value={filters.from_date} onChange={(e) => handleFilterChange("from_date", e.target.value)} className={inputClass} />
+                <input type="date" onClick={(e) => e.target.showPicker && e.target.showPicker()} value={filters.from_date} onChange={(e) => handleFilterChange("from_date", e.target.value)} className={inputClass} />
             </div>
             <div className="flex flex-col">
                 <label className={`text-[10px] uppercase mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>To</label>
-                <input type="date" value={filters.to_date} onChange={(e) => handleFilterChange("to_date", e.target.value)} className={inputClass} />
+                <input type="date" onClick={(e) => e.target.showPicker && e.target.showPicker()} value={filters.to_date} onChange={(e) => handleFilterChange("to_date", e.target.value)} className={inputClass} />
             </div>
         </div>
       </div>
@@ -425,13 +494,19 @@ const Leads = () => {
                 <thead className={tableHeaderClass}>
                 <tr>
                     <th className="px-4 py-3 whitespace-nowrap">S.No</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Date</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Name</th>
+                    <th className="px-4 py-3 whitespace-nowrap">CREATED Date</th>
+                    <th className="px-4 py-3 whitespace-nowrap">CLIENT Name</th>
                     <th className="px-4 py-3 whitespace-nowrap">Phone</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Email</th>
                     <th className="px-4 py-3 whitespace-nowrap">Segment</th>
                     <th className="px-4 py-3 whitespace-nowrap">Company</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Location</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Role</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Call Outcome</th>
                     <th className="px-4 py-3 whitespace-nowrap">Interest</th>
                     <th className="px-4 py-3 whitespace-nowrap min-w-[200px]">Latest Remark</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Last Follow Up</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Days Since LFU</th>
                     <th className="px-4 py-3 whitespace-nowrap">Status</th>
                     <th className="px-4 py-3 whitespace-nowrap">Next Follow Up</th>
                     <th className="px-4 py-3 whitespace-nowrap">Assigned</th>
@@ -444,20 +519,45 @@ const Leads = () => {
                     <tr key={l._id} className={`${tableRowClass} group transition-colors`}>
                     <td className="px-4 py-3">{(page - 1) * limit + index + 1}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{l.created_date || "-"}</td>
-                    <td className={`px-4 py-3 font-medium whitespace-nowrap ${isDark ? "text-white" : "text-gray-900"}`}>{l.full_name || "-"}</td>
+                    <td className={`px-4 py-3 font-medium min-w-[150px] max-w-[200px] break-words whitespace-normal ${isDark ? "text-white" : "text-gray-900"}`}>{l.full_name || "-"}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{l.phone || "-"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap relative group cursor-pointer">
+                        <span className="group-hover:opacity-0 transition-opacity">
+                            {l.email ? (l.email.length > 10 ? l.email.substring(0, 10) + "..." : l.email) : "-"}
+                        </span>
+                        {l.email && l.email.length > 10 && (
+                            <span className={`hidden group-hover:flex items-center absolute top-0 left-0 h-full w-auto min-w-full px-4 z-50 shadow-md rounded whitespace-nowrap ${isDark ? "bg-slate-800 text-white" : "bg-white text-gray-900"}`}>
+                                {l.email}
+                            </span>
+                        )}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">{l.segment || "-"}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{l.company || "-"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{l.location || "-"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{l.role || "-"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                         <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${
+                            l.call_outcome === 'connected' ? (isDark ? 'bg-green-900/40 text-green-400 border-green-800' : 'bg-green-100 text-green-700 border-green-200') :
+                            l.call_outcome === 'not_connected' ? (isDark ? 'bg-red-900/40 text-red-400 border-red-800' : 'bg-red-100 text-red-700 border-red-200') :
+                            (isDark ? 'text-slate-500 border-transparent' : 'text-gray-400 border-transparent')
+                         }`}>
+                            {l.call_outcome ? l.call_outcome.replace('_', ' ') : "-"}
+                         </span>
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium 
                             ${l.interest_level === 'hi' ? (isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-800') : 
                             l.interest_level === 'i' ? (isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800') : 
                             (isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-600')}`}>
-                            {l.interest_level || "-"}
+                            {getInterestLabel(l.interest_level)}
                         </span>
                     </td>
-                    <td className={`px-4 py-3 text-xs truncate max-w-[200px] ${isDark ? "text-slate-500" : "text-gray-500"}`} title={getLatestRemark(l.remarks)}>
+                    <td className={`px-4 py-3 text-xs truncate max-w-[150px] ${isDark ? "text-slate-500" : "text-gray-500"}`} title={getLatestRemark(l.remarks)}>
                         {getLatestRemark(l.remarks)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">{l.last_followed_up ? new Date(l.last_followed_up).toLocaleDateString() : "-"}</td>
+                    <td className={`px-4 py-3 whitespace-nowrap text-xs font-semibold ${isDark ? "text-yellow-400" : "text-yellow-600"}`}>
+                        {getDaysSince(l.last_followed_up)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded text-xs font-semibold
@@ -526,12 +626,12 @@ const Leads = () => {
       </div>
 
       {/* EDIT MODAL */}
-      {isModalOpen && editingLead && (
+      {isModalOpen && (
         <div className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50 ${isDark ? "bg-black/80" : "bg-gray-900/60"}`}>
           <div className={`rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"}`}>
             {/* Modal Header */}
             <div className={`flex justify-between items-center px-6 py-4 border-b sticky top-0 z-10 ${isDark ? "border-slate-800 bg-slate-900" : "border-gray-200 bg-white"}`}>
-                <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>Edit Lead Details</h2>
+                <h2 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-800"}`}>{editingLead ? "Edit Lead Details" : "Create New Lead"}</h2>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 text-2xl leading-none">&times;</button>
             </div>
 
@@ -555,6 +655,14 @@ const Leads = () => {
                         <label className={labelClass}>Email</label>
                         <input className={inputClass}
                             value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                    </div>
+                     <div>
+                        <label className={labelClass}>Created Date</label>
+                        <input type="date" className={inputClass}
+                            value={formData.created_date || ""} 
+                            onChange={e => setFormData({...formData, created_date: e.target.value})}
+                            disabled={!!editingLead} // Only editable in create mode
+                        />
                     </div>
                     <div>
                         <label className={labelClass}>Company</label>
@@ -646,7 +754,7 @@ const Leads = () => {
   onChange={(e) =>
     setFormData({ ...formData, call_outcome: e.target.value })
   }
-  className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white"
+  className={inputClass}
 >
   <option value="">Select</option>
   <option value="connected">Connected</option>
@@ -692,7 +800,9 @@ const Leads = () => {
                         <select className={inputClass}
                              value={formData.converted_by} onChange={e => setFormData({...formData, converted_by: e.target.value})}>
                             <option value="">-- Select --</option>
-                            {staffMembers.map(s => (
+                            {staffMembers
+                                .filter(s => isManagerOrAbove ? true : s._id === admin?._id) // Non-managers only see themselves
+                                .map(s => (
                                 <option key={s._id} value={s._id}>{s.name || s.email}</option>
                             ))}
                         </select>

@@ -58,7 +58,7 @@ const Shell = ({ children }) => {
       <aside
         className={`
           fixed lg:sticky top-0 left-0 z-50
-          h-screen w-64
+          h-[100dvh] w-64
           bg-[var(--bg-sidebar)]
           border-r border-[var(--border-primary)]
           transform transition-transform duration-300
@@ -164,18 +164,19 @@ const Shell = ({ children }) => {
           </PermissionGate>
 
           <Link to="/admin/b2b" onClick={() => setSidebarOpen(false)} className={linkClass}>
-            B2B
+            B2B Sales
           </Link>
         </nav>
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 p-4 lg:p-6 overflow-y-auto h-screen">
+      <main className="flex-1 p-4 lg:p-6 overflow-y-auto h-[100dvh]">
         {/* TOP HEADER */}
-        <div className="sticky top-0 z-20 mb-4">
-          <div className="flex items-center justify-between bg-[var(--bg-card)]
-            border border-[var(--border-primary)]
-            rounded-xl px-4 py-3 shadow-sm backdrop-blur">
+        <div className="sticky top-0 z-20">
+  <div className="flex items-center justify-between bg-[var(--bg-card)]
+    border border-[var(--border-primary)]
+    rounded-xl px-4 py-3 shadow-sm backdrop-blur">
+
             
             <div className="flex items-center gap-3">
               <button
@@ -193,6 +194,14 @@ const Shell = ({ children }) => {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                to="/admin/b2b"
+                className="px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-500 
+                hover:bg-blue-500 hover:text-white transition font-medium text-sm"
+              >
+                B2B Sales
+              </Link>
+              
               <button
                 onClick={toggleTheme}
                 className="px-3 py-2 rounded-lg border border-[var(--border-primary)]

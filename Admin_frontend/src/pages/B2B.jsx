@@ -11,6 +11,11 @@ const B2B = () => {
   const [editing, setEditing] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [stats, setStats] = useState({ totalValue: 0, receivedValue: 0, totalCount: 0, pendingValue: 0 });
+  const limit = 25;
 
   // --- FILTERS STATE (Mirroring Leads.jsx for consistency) ---
   const [filters, setFilters] = useState({
@@ -55,8 +60,11 @@ const B2B = () => {
       const leadId = searchParams.get("lead");
       if (leadId) params.set("lead_id", leadId);
 
+      params.set("page", page);
+      params.set("limit", limit);
+
       const res = await api.get(`/admin/b2b?${params.toString()}`);
-      let data = res.data?.data || [];
+      let { data = [], totalPages: tp = 1, stats: st = {}, total: tot = 0 } = res.data || {};
       
       // Local fallback filter if backend doesn't handle lead_id param yet
       if (leadId) {
@@ -64,6 +72,8 @@ const B2B = () => {
       }
 
       setRecords(data);
+      setTotalPages(tp);
+      setStats({ ...st, totalCount: tot });
     } catch (err) {
       console.error("B2B Load Error:", err);
     } finally {
@@ -71,13 +81,31 @@ const B2B = () => {
     }
   };
 
-  // Trigger loadData when filters or URL params change
+  const loadStaff = async () => {
+    try {
+        const res = await api.get("/admin/users?role=Staff");
+        setStaffMembers(res.data?.data || []);
+    } catch (err) {
+        console.error("Failed to load staff", err);
+    }
+  };
+
+  useEffect(() => {
+      loadStaff();
+  }, []);
+
+  // Trigger loadData when filters or URL params change (Reset page to 1 on filter change)
   useEffect(() => {
     const timer = setTimeout(() => {
         loadData();
     }, 400); 
     return () => clearTimeout(timer);
-  }, [filters, searchParams]);
+  }, [filters, searchParams, page]);
+
+  // Reset page when filters change
+  useEffect(() => {
+      setPage(1);
+  }, [filters]);
 
   // ===============================
   // PERMISSION HELPERS
@@ -91,8 +119,14 @@ const B2B = () => {
     if (isManagerOrAbove) return true;
     if (!currentUserId) return false;
     const uId = String(currentUserId);
-    const assignedToId = rec.lead_id?.assigned_to?._id || rec.lead_id?.assigned_to;
-    if (assignedToId && String(assignedToId) === uId) return true;
+    
+    // Check direct assignment
+    if (rec.assigned_to && (rec.assigned_to._id === uId || rec.assigned_to === uId)) return true;
+
+    // Check Lead assignment (fallback)
+    const leadAssignedTo = rec.lead_id?.assigned_to?._id || rec.lead_id?.assigned_to;
+    if (leadAssignedTo && String(leadAssignedTo) === uId) return true;
+
     const convertedById = rec.converted_by?._id || rec.converted_by;
     if (convertedById && String(convertedById) === uId) return true;
     return false;
@@ -131,6 +165,9 @@ const B2B = () => {
       last_receipt_date: rec.last_receipt_date ? rec.last_receipt_date.substring(0, 10) : "",
       order_status: rec.order_status || "OPEN",
       additional_remarks: rec.additional_remarks || "",
+      assigned_to: rec.assigned_to?._id || rec.lead_id?.assigned_to?._id || "",
+      converted_by: rec.converted_by?._id || rec.lead_id?.converted_by?._id || "",
+      created_by: rec.created_by?._id || rec.lead_id?.created_by?._id || ""
     });
     setIsModalOpen(true);
   };
@@ -181,6 +218,27 @@ const B2B = () => {
         </div>
       </div>
 
+
+      {/* --- STATS DASHBOARD --- */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg shadow-sm">
+            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Total Orders</h3>
+            <p className="text-2xl font-bold text-white">{stats.totalCount || 0}</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg shadow-sm">
+            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Total Value</h3>
+            <p className="text-2xl font-bold text-blue-400">₹{stats.totalValue?.toLocaleString()}</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg shadow-sm">
+            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Received</h3>
+            <p className="text-2xl font-bold text-green-400">₹{stats.receivedValue?.toLocaleString()}</p>
+        </div>
+         <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg shadow-sm">
+            <h3 className="text-slate-400 text-xs font-bold uppercase mb-1">Pending</h3>
+            <p className="text-2xl font-bold text-yellow-400">₹{stats.pendingValue?.toLocaleString()}</p>
+        </div>
+      </div>
+
       {/* --- FILTER BAR (Functional Grid) --- */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <input 
@@ -209,16 +267,16 @@ const B2B = () => {
               <option value="ig">Instagram</option>
               <option value="inbound">Inbound</option>
           </select>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <input 
               type="date"
-              className="w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-[10px] text-white outline-none"
+              className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
               value={filters.from_date}
               onChange={(e) => handleFilterChange("from_date", e.target.value)}
             />
             <input 
               type="date"
-              className="w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-[10px] text-white outline-none"
+              className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
               value={filters.to_date}
               onChange={(e) => handleFilterChange("to_date", e.target.value)}
             />
@@ -233,26 +291,33 @@ const B2B = () => {
           <table className="w-full text-sm text-slate-300">
             <thead className="bg-slate-950 text-slate-100">
               <tr>
-                <th className="p-3 text-left">Sr</th>
-                <th className="p-3 text-left">Client</th>
-                <th className="p-3 text-left">Mobile</th>
-                <th className="p-3 text-left">Company</th>
+                <th className="p-3 text-left">S.NO</th>
+                <th className="p-3 text-left">CLIENT NAME</th>
+                <th className="p-3 text-left">PHONE</th>
+                <th className="p-3 text-left">COMPANY</th>
+                <th className="p-3 text-left">Order Details</th>
                 <th className="p-3 text-left">Order Date</th>
+                <th className="p-3 text-left">Last Receipt</th>
                 <th className="p-3 text-left">Total</th>
                 <th className="p-3 text-left text-green-400">Received</th>
                 <th className="p-3 text-left text-yellow-300">Pending</th>
                 <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-left">Created By</th>
+                <th className="p-3 text-left">Assigned To</th>
+                <th className="p-3 text-left">Converted By</th>
                 <th className="p-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {records.map((r) => (
+              {records.map((r, index) => (
                 <tr key={r._id} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-                  <td className="p-3">{r.sr_no}</td>
-                  <td className="p-3 text-white font-medium">{r.client_name}</td>
+                  <td className="p-3 font-mono text-slate-500">{(page - 1) * limit + index + 1}</td>
+                  <td className="p-3 text-white font-medium min-w-[150px] max-w-[200px] break-words whitespace-normal">{r.client_name}</td>
                   <td className="p-3">{r.mobile}</td>
                   <td className="p-3">{r.company || "-"}</td>
-                  <td className="p-3">{r.order_date ? new Date(r.order_date).toLocaleDateString() : "-"}</td>
+                  <td className="p-3 max-w-[200px] truncate" title={r.order_details}>{r.order_details || "-"}</td>
+                  <td className="p-3 whitespace-nowrap">{r.order_date ? new Date(r.order_date).toLocaleDateString() : "-"}</td>
+                  <td className="p-3 whitespace-nowrap">{r.last_receipt_date ? new Date(r.last_receipt_date).toLocaleDateString() : "-"}</td>
                   <td className="p-3 font-semibold">{r.total_order_value || 0}</td>
                   <td className="p-3 text-green-400 font-semibold">{r.amount_received || 0}</td>
                   <td className="p-3 text-yellow-300 font-semibold">{r.amount_pending || 0}</td>
@@ -260,6 +325,15 @@ const B2B = () => {
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.order_status === 'CLOSED' ? 'bg-green-900 text-green-300' : 'bg-blue-900 text-blue-300'}`}>
                         {r.order_status}
                     </span>
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-xs">
+                      {r.created_by?.name || r.created_by?.email || r.lead_id?.created_by?.name || r.lead_id?.created_by?.email || "-"}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-xs">
+                      {r.assigned_to?.name || r.assigned_to?.email || r.lead_id?.assigned_to?.name || r.lead_id?.assigned_to?.email || "-"}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-xs">
+                      {r.converted_by?.name || r.converted_by?.email || r.lead_id?.converted_by?.name || r.lead_id?.converted_by?.email || "-"}
                   </td>
                   <td className="p-3">
                     {canEditRecord(r) && (
@@ -276,6 +350,23 @@ const B2B = () => {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="text-sm text-slate-500">
+             Page <span className="font-semibold text-white">{page}</span> of <span className="font-semibold text-white">{totalPages}</span>
+        </div>
+        <div className="flex gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} 
+                className="px-4 py-2 text-sm font-medium border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-300 bg-slate-800 border-slate-700 hover:bg-slate-700">
+                Previous
+            </button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} 
+                className="px-4 py-2 text-sm font-medium border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-300 bg-slate-800 border-slate-700 hover:bg-slate-700">
+                Next
+            </button>
+        </div>
       </div>
 
       {/* MODAL */}
@@ -338,6 +429,47 @@ const B2B = () => {
                 />
               </div>
 
+
+
+              {/* MANAGER/ADMIN ONLY FIELDS: Assignments */}
+              {isManagerOrAbove && (
+                <div className="grid grid-cols-3 gap-4 border-t border-slate-800 pt-4 mt-4">
+                    <div>
+                        <label className="text-xs text-slate-500 uppercase font-bold mb-1 block">Assigned To</label>
+                        <select
+                            value={formData.assigned_to}
+                            onChange={(e) => setFormData(p => ({ ...p, assigned_to: e.target.value }))}
+                            className="w-full bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
+                        >
+                            <option value="">-- Select --</option>
+                            {staffMembers.map(s => <option key={s._id} value={s._id}>{s.name || s.email}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-500 uppercase font-bold mb-1 block">Converted By</label>
+                        <select
+                            value={formData.converted_by}
+                            onChange={(e) => setFormData(p => ({ ...p, converted_by: e.target.value }))}
+                            className="w-full bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
+                        >
+                             <option value="">-- Select --</option>
+                            {staffMembers.map(s => <option key={s._id} value={s._id}>{s.name || s.email}</option>)}
+                        </select>
+                    </div>
+                     <div>
+                        <label className="text-xs text-slate-500 uppercase font-bold mb-1 block">Created By</label>
+                         <select
+                            value={formData.created_by}
+                            onChange={(e) => setFormData(p => ({ ...p, created_by: e.target.value }))}
+                            className="w-full bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
+                        >
+                             <option value="">-- Select --</option>
+                            {staffMembers.map(s => <option key={s._id} value={s._id}>{s.name || s.email}</option>)}
+                        </select>
+                    </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 uppercase font-bold mb-1 block">Total Value</label>
@@ -349,13 +481,24 @@ const B2B = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 uppercase font-bold mb-1 block">Amount Received</label>
-                  <input
-                    type="number"
-                    value={formData.amount_received}
-                    onChange={(e) => setFormData(p => ({ ...p, amount_received: e.target.value }))}
-                    className="w-full bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
-                  />
+                   <div className="flex gap-2 mb-1">
+                      <label className="text-xs text-slate-500 uppercase font-bold block">Amount Received</label>
+                      <label className="text-xs text-slate-500 uppercase font-bold block ml-4">Last Receipt Date</label>
+                   </div>
+                   <div className="flex gap-2">
+                    <input
+                        type="number"
+                        value={formData.amount_received}
+                        onChange={(e) => setFormData(p => ({ ...p, amount_received: e.target.value }))}
+                        className="w-1/2 bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
+                    />
+                    <input
+                        type="date"
+                        value={formData.last_receipt_date}
+                        onChange={(e) => setFormData(p => ({ ...p, last_receipt_date: e.target.value }))}
+                        className="w-1/2 bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
+                    />
+                   </div>
                 </div>
               </div>
 
