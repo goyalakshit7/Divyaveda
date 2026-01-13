@@ -25,7 +25,7 @@ const B2B = () => {
     segment: "",
     client_profile: "",
     from_date: "",
-    to_date: "",
+    to_date: new Date().toISOString().split('T')[0], // Default to Today
   });
 
   const [formData, setFormData] = useState({
@@ -196,8 +196,18 @@ const B2B = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", order_status: "", platform: "", segment: "", client_profile: "", from_date: "", to_date: "" });
+    setFilters({ 
+        search: "", 
+        order_status: "", 
+        platform: "", 
+        segment: "", 
+        client_profile: "", 
+        from_date: "", 
+        to_date: new Date().toISOString().split('T')[0] // Reset to Today
+    });
     setSearchParams({});
+    setPage(1);
+    loadData(); // Force reload manually if effect dependencies tricky, but effect usually handles it
   };
 
   return (
@@ -210,6 +220,9 @@ const B2B = () => {
                 Show All Orders
               </button>
             )}
+            <button onClick={clearFilters} className="bg-slate-700 text-white px-3 py-1.5 rounded text-sm hover:bg-slate-600 flex items-center gap-2">
+                ❌ Reset
+            </button>
             <PermissionGate routeName="B2B_CREATE">
                 <button onClick={openAdd} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-500 shadow-md">
                   + Add New Order
@@ -272,12 +285,14 @@ const B2B = () => {
               type="date"
               className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
               value={filters.from_date}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={(e) => handleFilterChange("from_date", e.target.value)}
             />
             <input 
               type="date"
               className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
               value={filters.to_date}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
               onChange={(e) => handleFilterChange("to_date", e.target.value)}
             />
           </div>
@@ -400,6 +415,7 @@ const B2B = () => {
                   <input
                     type="date"
                     value={formData.order_date}
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
                     onChange={(e) => setFormData(p => ({ ...p, order_date: e.target.value }))}
                     className="bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
                   />
@@ -495,6 +511,7 @@ const B2B = () => {
                     <input
                         type="date"
                         value={formData.last_receipt_date}
+                        onClick={(e) => e.target.showPicker && e.target.showPicker()}
                         onChange={(e) => setFormData(p => ({ ...p, last_receipt_date: e.target.value }))}
                         className="w-1/2 bg-slate-950 p-2 rounded border border-slate-700 text-white outline-none"
                     />

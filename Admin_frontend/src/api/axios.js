@@ -1,10 +1,9 @@
 import axios from "axios";
 
 // --- 1. SMART BASE URL ---
-// If we are on Vercel, it uses the hidden environment variable.
-// If we are on Localhost, it uses port 8000.
-// We append "/api" because your backend routes start with /api
-const BASE_URL = (import.meta.env.VITE_API_URL || "https://divyaveda.onrender.com" || "http://localhost:8000") + "/api";
+// Check if we are running locally to default to localhost, otherwise prod
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const BASE_URL = (import.meta.env.VITE_API_URL || (isLocal ? "http://localhost:8000" : "https://divyaveda.onrender.com")) + "/api";
 
 const api = axios.create({
   baseURL: BASE_URL,

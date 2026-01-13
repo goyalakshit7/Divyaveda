@@ -195,11 +195,11 @@ const Shell = ({ children }) => {
 
             <div className="flex items-center gap-2">
               <Link
-                to="/admin/b2b"
+                to="/admin/leads"
                 className="px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-500 
                 hover:bg-blue-500 hover:text-white transition font-medium text-sm"
               >
-                B2B Sales
+                Leads Management
               </Link>
               
               <button

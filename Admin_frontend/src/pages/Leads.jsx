@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
 import api from "../api/axios";
 import { useAdminAuth } from "../context/AuthContext";
 import jsPDF from "jspdf";
@@ -40,7 +40,7 @@ const Leads = () => {
     assigned: "", 
     search: "",
     from_date: "",
-    to_date: "",
+    to_date: new Date().toISOString().split('T')[0], // Default to Today
     call_outcome: "",
   });
 
@@ -62,7 +62,8 @@ const Leads = () => {
     assigned_to: "",
     converted_by: "",
     converted: false,
-    client_profile: ""
+    client_profile: "",
+    role: "" // Added role
   });
 
   const isManagerOrAbove = ["Manager", "Admin", "Super Admin"].includes(userRole);
@@ -158,7 +159,8 @@ const Leads = () => {
             assigned_to: lead.assigned_to?._id || "",
             converted_by: lead.converted_by?._id || "",
             converted: lead.converted || false,
-            client_profile: lead.client_profile || ""
+            client_profile: lead.client_profile || "",
+            role: lead.role || "" 
         });
     } else {
         // CREATE MODE
@@ -180,7 +182,8 @@ const Leads = () => {
             assigned_to: "", // Backend handles assignment logic usually, or can leave empty
             converted_by: "",
             converted: false,
-            client_profile: ""
+            client_profile: "",
+            role: "" 
         });
     }
     setIsModalOpen(true);
@@ -219,6 +222,23 @@ const Leads = () => {
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     if(key !== "search") setPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+        platform: "",
+        segment: "",
+        client_profile: "",
+        lead_status: "",
+        interest_level: "",
+        req_time: "",
+        assigned: "", 
+        search: "",
+        from_date: "",
+        to_date: new Date().toISOString().split('T')[0], // Reset to Today
+        call_outcome: "",
+    });
+    setPage(1);
   };
 
   const nextPage = () => { if (page < totalPages) loadLeads(page + 1); };
@@ -302,7 +322,7 @@ const Leads = () => {
     switch(val) {
         case 'hi': return 'Highly Interested';
         case 'i': return 'Interested';
-        case 'mi': return 'Marginal Interest';
+        case 'mi': return 'Mildly Interested';
         case 'ni': return 'Not Interested';
         default: return val || "-";
     }
@@ -355,8 +375,20 @@ const Leads = () => {
         </div>
 
         <div className="flex flex-wrap justify-center gap-2">
+                      <div className="flex items-center gap-2">
+              <Link
+                to="/admin/B2B"
+                className="px-3 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-500 
+                hover:bg-blue-500 hover:text-white transition font-medium text-sm"
+              >
+                B2B SALES
+              </Link>
+              </div>
           <button onClick={() => loadLeads(page)} className={`${isDark ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"} border px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2`}>
             🔄 <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <button onClick={resetFilters} className={`${isDark ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"} border px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2`}>
+            ❌ <span className="hidden sm:inline">Reset</span>
           </button>
           <button onClick={() => openModal(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
             ➕ <span className="hidden sm:inline">New Lead</span>
@@ -454,7 +486,7 @@ const Leads = () => {
             <select value={filters.interest_level} onChange={(e) => handleFilterChange("interest_level", e.target.value)} className={inputClass}>
                 <option value="">Interest Level</option>
                 <option value="ni">Not Interested</option>
-                <option value="mi">Marginal Interest</option>
+                <option value="mi">Mildly Interested</option>
                 <option value="i">Interested</option>
                 <option value="hi">Highly Interested</option>
             </select>
@@ -656,12 +688,20 @@ const Leads = () => {
                         <input className={inputClass}
                             value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                     </div>
-                     <div>
+                    <div>
                         <label className={labelClass}>Created Date</label>
                         <input type="date" className={inputClass}
                             value={formData.created_date || ""} 
+                            onClick={(e) => e.target.showPicker && e.target.showPicker()}
                             onChange={e => setFormData({...formData, created_date: e.target.value})}
                             disabled={!!editingLead} // Only editable in create mode
+                        />
+                    </div>
+                    <div>
+                        <label className={labelClass}>Role</label>
+                        <input className={inputClass}
+                            value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} 
+                            placeholder="e.g. CEO, Manager" 
                         />
                     </div>
                     <div>
@@ -697,7 +737,7 @@ const Leads = () => {
                             value={formData.interest_level} onChange={e => setFormData({...formData, interest_level: e.target.value})}>
                             <option value="">Select</option>
                             <option value="ni">Not Interested</option>
-                            <option value="mi">Marginal Interest</option>
+                            <option value="mi">Mildly Interested</option>
                             <option value="i">Interested</option>
                             <option value="hi">Highly Interested</option>
                         </select>
@@ -776,11 +816,13 @@ const Leads = () => {
                     <div>
                         <label className={labelClass}>Last Follow Up</label>
                         <input type="date" className={inputClass}
+                            onClick={(e) => e.target.showPicker && e.target.showPicker()}
                             value={formData.last_followed_up} onChange={e => setFormData({...formData, last_followed_up: e.target.value})} />
                     </div>
                     <div>
                         <label className={labelClass}>Next Follow Up</label>
                         <input type="date" className={inputClass}
+                            onClick={(e) => e.target.showPicker && e.target.showPicker()}
                             value={formData.next_follow_up} onChange={e => setFormData({...formData, next_follow_up: e.target.value})} />
                     </div>
                 </div>

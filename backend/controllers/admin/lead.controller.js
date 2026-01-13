@@ -150,24 +150,52 @@ export const getAllLeads = async (req, res) => {
 ===================================================== */
 export const createLead = async (req, res) => {
   try {
-    const { full_name, phone, email, platform, lead_status, company_name, created_date } = req.body;
+    const {
+      full_name, phone, email, platform, lead_status, company_name, created_date,
+      segment, interest_level, req_time, client_profile, call_outcome,
+      location, last_followed_up, next_follow_up, assigned_to, converted,
+      converted_by, remarks, role // Added role
+    } = req.body;
 
     const currentUser = await User.findById(req.user.id).populate("role_id");
     const isStaff = currentUser?.role_id?.role_name === "Staff";
 
-    const lead = await Lead.create({
+    const leadData = {
       full_name,
       phone,
       email,
       platform,
-      company: company_name,
+      company: company_name, // Map company_name from frontend to company in DB
       lead_status: lead_status || "NEW",
       created_date: created_date || new Date().toISOString().split('T')[0],
       created_by: req.user.id,
-      assigned_to: isStaff ? req.user.id : null,
+      assigned_to: isStaff ? req.user.id : (assigned_to || null), // Use passed assigned_to if available and not staff
       source: "MANUAL",
-      isActive: true
-    });
+      isActive: true,
+      // New fields
+      segment,
+      interest_level,
+      req_time,
+      client_profile,
+      call_outcome,
+      location,
+      role, // Persist role
+      last_followed_up: last_followed_up || null,
+      next_follow_up: next_follow_up || null,
+      converted: converted || false,
+      converted_by: converted_by || null,
+    };
+
+    // Handle initial remark if provided
+    if (remarks) {
+      leadData.remarks = [{
+        comment: remarks,
+        date: new Date(),
+        by: req.user.id
+      }];
+    }
+
+    const lead = await Lead.create(leadData);
 
     res.status(201).json({ message: "Lead created", lead });
   } catch (error) {
@@ -202,7 +230,7 @@ export const updateLead = async (req, res) => {
     }
 
     // Clean empty values
-    ["segment", "interest_level", "req_time", "client_profile", "last_followed_up", "next_follow_up", "converted_by"].forEach((field) => {
+    ["segment", "interest_level", "req_time", "client_profile", "last_followed_up", "next_follow_up", "converted_by", "role"].forEach((field) => {
       if (body[field] === "") body[field] = null;
     });
 
@@ -216,7 +244,7 @@ export const updateLead = async (req, res) => {
     const editableFields = [
       "full_name", "phone", "email", "company", "platform", "segment",
       "interest_level", "req_time", "client_profile", "call_outcome",
-      "last_followed_up", "next_follow_up", "location", "lead_status"
+      "last_followed_up", "next_follow_up", "location", "lead_status", "role" // Added role
     ];
     editableFields.forEach((field) => {
       if (body[field] !== undefined) lead[field] = body[field];
