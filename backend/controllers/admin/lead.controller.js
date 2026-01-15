@@ -17,6 +17,7 @@ import { B2B } from "../../models/b2b.master.js";
 export const getAllLeads = async (req, res) => {
   try {
     console.log("🔍 GET ALL LEADS QUERY:", req.query);
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
@@ -57,7 +58,7 @@ export const getAllLeads = async (req, res) => {
         { full_name: searchRegex },
         { phone: searchRegex },
         { email: searchRegex },
-        { company: searchRegex },
+        { company: searchRegex }
       ];
     }
 
@@ -70,61 +71,48 @@ export const getAllLeads = async (req, res) => {
     if (lead_status) query.lead_status = lead_status;
     if (req_time) query.req_time = req_time;
 
-    // bust logic for assignment
+    // 👤 ASSIGNMENT FILTER
     if (assigned) {
       if (assigned === "assigned") {
         query.assigned_to = { $ne: null };
       } else if (assigned === "unassigned") {
         query.assigned_to = null;
       } else {
-        query.assigned_to = assigned; // specific user ID
+        query.assigned_to = assigned;
       }
     }
 
+    // 🔄 CONVERTED FILTER
     if (typeof converted !== "undefined") {
       query.converted = converted === "true";
     }
 
-    // 📅 DATE FILTER
-    // 📅 DATE FILTER (Check BOTH created_date string and createdAt timestamp)
+    // 📅 ✅ CORRECT DATE FILTER (USES created_date STRING)
     if (from_date || to_date) {
-      const dateConditions = [];
+      query.created_date = {};
 
-      // 1. Check created_date (String "YYYY-MM-DD")
-      const stringCondition = {};
-      if (from_date) stringCondition.$gte = from_date;
-      if (to_date) stringCondition.$lte = to_date;
-      if (Object.keys(stringCondition).length > 0) {
-        dateConditions.push({ created_date: stringCondition });
+      if (from_date) {
+        query.created_date.$gte = from_date;
       }
 
-      // 2. Check createdAt (Date object)
-      const dateCondition = {};
-      if (from_date) dateCondition.$gte = new Date(from_date);
       if (to_date) {
-        const end = new Date(to_date);
-        end.setHours(23, 59, 59, 999);
-        dateCondition.$lte = end;
-      }
-      if (Object.keys(dateCondition).length > 0) {
-        dateConditions.push({ createdAt: dateCondition });
-      }
-
-      if (dateConditions.length > 0) {
-        query.$or = (query.$or || []).concat(dateConditions);
+        query.created_date.$lte = to_date;
       }
     }
 
     const total = await Lead.countDocuments(query);
     const convertedCount = await Lead.countDocuments({ ...query, converted: true });
-    const interestedCount = await Lead.countDocuments({ ...query, interest_level: { $in: ["i", "hi"] } });
+    const interestedCount = await Lead.countDocuments({
+      ...query,
+      interest_level: { $in: ["i", "hi"] }
+    });
     const pendingCount = await Lead.countDocuments({ ...query, converted: false });
 
     const leads = await Lead.find(query)
       .populate("assigned_to", "name email")
       .populate("created_by", "name email")
       .populate("converted_by", "name email")
-      .sort({ createdAt: -1 })
+      .sort({ created_date: -1 }) // sort by business date
       .skip(skip)
       .limit(limit);
 
