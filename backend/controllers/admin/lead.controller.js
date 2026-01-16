@@ -72,15 +72,17 @@ export const getAllLeads = async (req, res) => {
     if (req_time) query.req_time = req_time;
 
     // 👤 ASSIGNMENT FILTER
-    if (assigned) {
+    // 👤 ASSIGNMENT FILTER (FIXED)
+    if (assigned && isManagerOrAbove) {
       if (assigned === "assigned") {
         query.assigned_to = { $ne: null };
       } else if (assigned === "unassigned") {
         query.assigned_to = null;
       } else {
-        query.assigned_to = assigned;
+        query.assigned_to = assigned; // specific user ID
       }
     }
+
 
     // 🔄 CONVERTED FILTER
     if (typeof converted !== "undefined") {
