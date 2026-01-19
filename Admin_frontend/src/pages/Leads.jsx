@@ -154,6 +154,7 @@ const Leads = () => {
             req_time: lead.req_time || "",
             call_outcome: lead.call_outcome || "",
             lead_status: lead.lead_status || "CREATED",
+            created_date: lead.created_date || "",
             last_followed_up: lead.last_followed_up ? lead.last_followed_up.substring(0, 10) : "",
             next_follow_up: lead.next_follow_up ? lead.next_follow_up.substring(0, 10) : "",
             assigned_to: lead.assigned_to?._id || "",
@@ -179,7 +180,7 @@ const Leads = () => {
             created_date: new Date().toISOString().split('T')[0], // Default to today
             last_followed_up: "",
             next_follow_up: "",
-            assigned_to: "", // Backend handles assignment logic usually, or can leave empty
+            assigned_to: admin?.id || "", // Default to current user
             converted_by: "",
             converted: false,
             client_profile: "",
@@ -742,7 +743,6 @@ const Leads = () => {
                             value={formData.created_date || ""} 
                             onClick={(e) => e.target.showPicker && e.target.showPicker()}
                             onChange={e => setFormData({...formData, created_date: e.target.value})}
-                            disabled={!!editingLead} // Only editable in create mode
                         />
                     </div>
                     <div>

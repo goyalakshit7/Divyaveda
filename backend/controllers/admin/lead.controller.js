@@ -234,7 +234,7 @@ export const updateLead = async (req, res) => {
     const editableFields = [
       "full_name", "phone", "email", "company", "platform", "segment",
       "interest_level", "req_time", "client_profile", "call_outcome",
-      "last_followed_up", "next_follow_up", "location", "lead_status", "role" // Added role
+      "last_followed_up", "next_follow_up", "location", "lead_status", "role", "created_date"
     ];
     editableFields.forEach((field) => {
       if (body[field] !== undefined) lead[field] = body[field];
@@ -246,11 +246,17 @@ export const updateLead = async (req, res) => {
     }
 
     // Conversion Logic
+    console.log("📍 BEFORE Conversion Logic - body.converted:", body.converted, "body.converted_by:", body.converted_by);
     if (typeof body.converted === "boolean") {
       lead.converted = body.converted;
       if (body.converted) {
-        // Use the explicitly passed ID (from dropdown) OR fallback to current user
-        lead.converted_by = body.converted_by || currentUserId;
+        // If converted_by is provided in the request, use it
+        // Otherwise, use currentUserId only if lead doesn't already have a converted_by
+        if (body.converted_by) {
+          lead.converted_by = body.converted_by;
+        } else if (!lead.converted_by) {
+          lead.converted_by = currentUserId;
+        }
         lead.converted_date = new Date();
       } else {
         lead.converted_by = null;
@@ -258,13 +264,18 @@ export const updateLead = async (req, res) => {
       }
     }
 
+    console.log("✅ AFTER Conversion Logic - lead.converted:", lead.converted, "lead.converted_by:", lead.converted_by);
     lead.last_modified_date = new Date();
     await lead.save();
+    console.log("✅ AFTER SAVE - lead.converted:", lead.converted, "lead.converted_by:", lead.converted_by);
 
     // AUTO CREATE B2B if Converted
+    console.log("🔍 B2B Check - lead.converted:", lead.converted, "lead.converted_by:", lead.converted_by);
     if (lead.converted === true) {
       const existingB2B = await B2B.findOne({ lead_id: lead._id });
+      console.log("🔍 Existing B2B entry:", existingB2B ? "EXISTS" : "NOT FOUND");
       if (!existingB2B) {
+        console.log("✅ Creating B2B entry for lead:", lead.full_name);
         await B2B.create({
           lead_id: lead._id,
           client_name: lead.full_name,
@@ -277,6 +288,7 @@ export const updateLead = async (req, res) => {
           total_order_value: 0,
           amount_received: 0,
         });
+        console.log("✅ B2B entry created successfully");
       }
     }
 

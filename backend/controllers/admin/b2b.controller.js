@@ -31,6 +31,8 @@ const getVisibleLeadIds = async (user) => {
 
 export const listB2B = async (req, res) => {
   try {
+    console.log("🔍 LIST B2B REQUEST - User ID:", req.user.id, "Query params:", req.query);
+
     const {
       search,
       order_status,
@@ -51,12 +53,20 @@ export const listB2B = async (req, res) => {
       user.isSuperAdmin === true ||
       ["Manager", "Admin", "Super Admin"].includes(roleName);
 
+    console.log("👤 User:", user.username, "Role:", roleName, "Is Manager+:", isManagerOrAbove);
+
     // 1. Initialize Query
     let query = {};
 
-    // 2. Role-Based Security (Existing)
+    // 2. Role-Based Security
+    // Non-managers can see B2B entries where they are assigned_to, converted_by, or created_by
     if (!isManagerOrAbove) {
-      query.converted_by = req.user.id;
+      query.$or = [
+        { converted_by: req.user.id },
+        { assigned_to: req.user.id },
+        { created_by: req.user.id }
+      ];
+      console.log("🔒 Non-manager filter applied - $or query:", JSON.stringify(query.$or));
     }
 
     // 3. Direct B2B Filters
@@ -72,10 +82,33 @@ export const listB2B = async (req, res) => {
     }
 
     // 5. Date Range Filter (on order_date)
+    // Include records where order_date is null OR within the specified range
     if (from_date || to_date) {
-      query.order_date = {};
-      if (from_date) query.order_date.$gte = new Date(from_date);
-      if (to_date) query.order_date.$lte = new Date(to_date);
+      const dateConditions = [];
+
+      // Always include null order_dates (newly created B2B entries)
+      dateConditions.push({ order_date: null });
+
+      // Add date range condition if filters are specified
+      const dateRange = {};
+      if (from_date) dateRange.$gte = new Date(from_date);
+      if (to_date) dateRange.$lte = new Date(to_date);
+
+      if (Object.keys(dateRange).length > 0) {
+        dateConditions.push({ order_date: dateRange });
+      }
+
+      // Combine with existing $or conditions if any
+      if (query.$or) {
+        // If there's already a $or (from search), we need to use $and
+        query.$and = [
+          { $or: query.$or },
+          { $or: dateConditions }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = dateConditions;
+      }
     }
 
     // 6. Lead-Related Filters (Platform/Segment)
@@ -92,9 +125,12 @@ export const listB2B = async (req, res) => {
       query.lead_id = { $in: leadIds };
     }
 
+    console.log("🔍 Final B2B Query:", JSON.stringify(query));
+
     // Execute Query
     const skip = (page - 1) * limit;
     const total = await B2B.countDocuments(query);
+    console.log("📊 Total B2B records matching query:", total);
 
     // Calculate Stats (Aggregation)
     const statsResult = await B2B.aggregate([
@@ -126,6 +162,17 @@ export const listB2B = async (req, res) => {
       .sort({ sr_no: -1 }) // Sort by Sr No desc
       .skip(skip)
       .limit(Number(limit));
+
+    console.log("✅ B2B Records returned:", records.length);
+    if (records.length > 0) {
+      console.log("📋 First record:", {
+        sr_no: records[0].sr_no,
+        client_name: records[0].client_name,
+        converted_by: records[0].converted_by?._id || records[0].converted_by,
+        created_by: records[0].created_by?._id || records[0].created_by,
+        assigned_to: records[0].assigned_to?._id || records[0].assigned_to
+      });
+    }
 
     res.json({
       data: records,
