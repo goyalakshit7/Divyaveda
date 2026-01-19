@@ -31,10 +31,12 @@ const app = express();//making instance of express
 app.use(
   cors({
     origin: [
+      "http://localhost:3000",  // Proxy server
       "http://localhost:5173",
+      "http://localhost:5174", // Admin frontend direct
+      "http://localhost:5175",  // User frontend direct
       "https://divyaveda.in",
-      "https://www.divyaveda.in",
-      "http://localhost:5175"
+      "https://www.divyaveda.in"
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

@@ -277,21 +277,69 @@ const Leads = () => {
         const res = await api.get(`/admin/leads?${params.toString()}`);
         const allLeads = res.data?.data || [];
 
+        // Helper function for interest level
+        const formatInterest = (val) => {
+            switch(val) {
+                case 'hi': return 'Highly Interested';
+                case 'i': return 'Interested';
+                case 'mi': return 'Mildly Interested';
+                case 'ni': return 'Not Interested';
+                default: return val || "-";
+            }
+        };
+
+        // Helper function for latest remark
+        const formatRemark = (remarks) => {
+            if (Array.isArray(remarks) && remarks.length > 0) {
+                const last = remarks[remarks.length - 1];
+                return typeof last === 'object' ? last.comment : last;
+            }
+            return typeof remarks === 'string' ? remarks : "-";
+        };
+
         autoTable(doc, {
             startY: 20,
-            head: [["Date", "Name", "Phone", "Email", "Platform", "Segment", "Status", "Assigned"]],
+            head: [[
+                "Date", 
+                "Name", 
+                "Phone", 
+                "Email", 
+                "Segment", 
+                "Company", 
+                "Location", 
+                "Role", 
+                "Call Outcome", 
+                "Interest", 
+                "Latest Remark", 
+                "Last Follow Up", 
+                "Status", 
+                "Next Follow Up", 
+                "Assigned", 
+                "Converted"
+            ]],
             body: allLeads.map(l => [
-                l.created_date,
-                l.full_name,
-                l.phone,
+                l.created_date || "-",
+                l.full_name || "-",
+                l.phone || "-",
                 l.email || "-",
-                l.platform || "-",
                 l.segment || "-",
-                l.lead_status,
-                l.assigned_to?.name || "Unassigned"
+                l.company || "-",
+                l.location || "-",
+                l.role || "-",
+                l.call_outcome ? l.call_outcome.replace('_', ' ') : "-",
+                formatInterest(l.interest_level),
+                formatRemark(l.remarks),
+                l.last_followed_up ? new Date(l.last_followed_up).toLocaleDateString() : "-",
+                l.lead_status || "-",
+                l.next_follow_up ? new Date(l.next_follow_up).toLocaleDateString() : "-",
+                l.assigned_to?.name || "Unassigned",
+                l.converted ? "Yes" : "No"
             ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [22, 163, 74] } 
+            styles: { fontSize: 6, cellPadding: 2 },
+            headStyles: { fillColor: [22, 163, 74], fontSize: 7 },
+            columnStyles: {
+                10: { cellWidth: 30 } // Latest Remark column - wider for better readability
+            }
         });
         
         doc.save("divyaveda_leads_export.pdf");
@@ -842,9 +890,7 @@ const Leads = () => {
                         <select className={inputClass}
                              value={formData.converted_by} onChange={e => setFormData({...formData, converted_by: e.target.value})}>
                             <option value="">-- Select --</option>
-                            {staffMembers
-                                .filter(s => isManagerOrAbove ? true : s._id === admin?._id) // Non-managers only see themselves
-                                .map(s => (
+                            {staffMembers.map(s => (
                                 <option key={s._id} value={s._id}>{s.name || s.email}</option>
                             ))}
                         </select>
