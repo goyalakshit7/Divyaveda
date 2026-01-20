@@ -21,19 +21,19 @@ export const verifyOtpAndRegister = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
- await User.create({
-  username,
-  email,
-  phone_number,
-  password: hashedPassword,
-  isEmailVerified: true
-});
+    await User.create({
+      username,
+      email,
+      phone_number,
+      password: hashedPassword,
+      isEmailVerified: true
+    });
 
 
     await Otp.deleteMany({ email });
 
     res.status(201).json({ message: "User registered successfully" });
-  } catch (err) {   
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
@@ -52,21 +52,21 @@ export const sendOtp = async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-   // console.log("OTP GENERATED:", otp);
-await sendOtpEmail(email, otp);
+    // console.log("OTP GENERATED:", otp);
+    await sendOtpEmail(email, otp);
 
 
     res.json({ message: "OTP sent to email" });
   } catch (error) {
-  console.error(
-    "BREVO FULL ERROR:",
-    error?.response?.body || error
-  );
+    console.error(
+      "BREVO FULL ERROR:",
+      error?.response?.body || error
+    );
 
-  res.status(500).json({
-    message: "OTP email failed"
-  });
-}
+    res.status(500).json({
+      message: "OTP email failed"
+    });
+  }
 
 };
 
@@ -74,7 +74,7 @@ export const register = async (req, res) => {
   try {
     const { username, email, password, phone_number } = req.body;
 
-    
+
     const existingUser = await User.findOne({ email });
     if (existingUser && existingUser.isActive) {
       return res.status(400).json({ message: "User already exists" });
@@ -105,19 +105,19 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "Invalid credentials" });
     }
-    if (!user.isActive){
-        return res.status(404).json({ message: "Account has been deactivated" });
+    if (!user.isActive) {
+      return res.status(404).json({ message: "Account has been deactivated" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-// if (!user.isEmailVerified) {
-//   return res.status(403).json({
-//     message: "Please verify your email before logging in"
-//   });
-// }
+    // if (!user.isEmailVerified) {
+    //   return res.status(403).json({
+    //     message: "Please verify your email before logging in"
+    //   });
+    // }
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
@@ -125,7 +125,7 @@ export const login = async (req, res) => {
     );
 
     const permissions = user.role_id?.screen_access || [];
-    
+
     user.last_login = new Date();
     await user.save();
 
@@ -159,7 +159,7 @@ export const getMe = async (req, res) => {
     const user = await User.findById(req.user.id)
       .select("-password")
       .populate("role_id");
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -199,7 +199,7 @@ export const updateMe = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    
+
     await UserAnalysis.findOneAndUpdate(
       { user_id: req.user.id, logout_time: null },
       { logout_time: new Date() }
@@ -237,12 +237,12 @@ export const deleteMe = async (req, res) => {
       });
     }
 
-    
+
     user.isActive = false;
     user.updated_by = user._id.toString();
     await user.save();
 
-    
+
     await UserAnalysis.findOneAndUpdate(
       { user_id: user._id, logout_time: null },
       { logout_time: new Date() }
@@ -284,6 +284,84 @@ export const getMyHistory = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Forgot Password - Send OTP to email
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email, isActive: true });
+    if (!user) {
+      return res.status(404).json({ message: "User not found with this email" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Delete any existing OTPs for this email
+    await Otp.deleteMany({ email });
+
+    // Create new OTP (valid for 10 minutes for password reset)
+    await Otp.create({
+      email,
+      otp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+
+    // Send OTP email
+    await sendOtpEmail(email, otp, "Password Reset");
+
+    res.json({ message: "OTP sent to your email for password reset" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Failed to send reset OTP" });
+  }
+};
+
+// Reset Password - Verify OTP and set new password
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    // Validate input
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Email, OTP, and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Verify OTP
+    const otpRecord = await Otp.findOne({ email, otp });
+
+    if (!otpRecord || otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Find user
+    const user = await User.findOne({ email, isActive: true });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Delete used OTP
+    await Otp.deleteMany({ email });
+
+    res.json({ message: "Password reset successful. You can now login with your new password." });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Failed to reset password" });
   }
 };
 

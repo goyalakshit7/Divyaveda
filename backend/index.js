@@ -23,6 +23,8 @@ import analyticsRoutes from "./routes/admin/analytics.routes.js";
 import b2bRoutes from "./routes/admin/b2b.routes.js";
 
 import leadRoutes from "./routes/admin/lead.routes.js"; // <--- Import
+import publicCategoryRoutes from "./routes/public/category.public.routes.js";
+import publicSubcategoryRoutes from "./routes/public/subcategory.public.routes.js";
 console.log("🔥 BACKEND BOOTED AT", new Date().toISOString());
 
 dotenv.config();//for loading env variables
@@ -58,6 +60,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/admin/users", userAdminRoutes);
 app.use("/api/products", publicProductRoutes);
+app.use("/api/categories", publicCategoryRoutes);  // Public categories
+app.use("/api/subcategories", publicSubcategoryRoutes);  // Public subcategories
 app.use("/api/admin/categories", categoryRoutes);
 app.use("/api/admin/subcategories", subcategoryRoutes);
 app.use("/api/admin/products", productRoutes);

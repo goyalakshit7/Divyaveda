@@ -142,6 +142,15 @@ const Leads = () => {
     setEditingLead(lead);
     if (lead) {
         // EDIT MODE
+        // Get the latest remark if available
+        let latestRemark = "";
+        if (Array.isArray(lead.remarks) && lead.remarks.length > 0) {
+            const last = lead.remarks[lead.remarks.length - 1];
+            latestRemark = typeof last === 'object' ? last.comment : last;
+        } else if (typeof lead.remarks === 'string') {
+            latestRemark = lead.remarks;
+        }
+        
         setFormData({
             full_name: lead.full_name || "",
             phone: lead.phone || "",
@@ -150,7 +159,7 @@ const Leads = () => {
             segment: lead.segment || "",
             company: lead.company || "",
             interest_level: lead.interest_level || "",
-            remarks: "", 
+            remarks: latestRemark, 
             req_time: lead.req_time || "",
             call_outcome: lead.call_outcome || "",
             lead_status: lead.lead_status || "CREATED",
@@ -436,9 +445,7 @@ const Leads = () => {
           <button onClick={() => loadLeads(page)} className={`${isDark ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"} border px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2`}>
             🔄 <span className="hidden sm:inline">Refresh</span>
           </button>
-          <button onClick={resetFilters} className={`${isDark ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"} border px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2`}>
-            ❌ <span className="hidden sm:inline">Reset</span>
-          </button>
+         
           <button onClick={() => openModal(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
             ➕ <span className="hidden sm:inline">New Lead</span>
           </button>
@@ -562,6 +569,19 @@ const Leads = () => {
                 <label className={`text-[10px] uppercase mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>To</label>
                 <input type="date" onClick={(e) => e.target.showPicker && e.target.showPicker()} value={filters.to_date} onChange={(e) => handleFilterChange("to_date", e.target.value)} className={inputClass} />
             </div>
+             <button
+  onClick={resetFilters}
+  className={`${isDark 
+    ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" 
+    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+  } 
+  border px-3 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm 
+  flex items-center justify-center gap-2
+  col-span-2 sm:col-span-1 md:col-span-1 lg:col-span-1 w-full`}
+>
+   <span className="hidden sm:inline">Reset</span>
+</button>
+
         </div>
       </div>
 
@@ -900,7 +920,7 @@ const Leads = () => {
 
               {/* REMARKS */}
               <div>
-                 <label className={labelClass}>Add New Remark</label>
+                 <label className={labelClass}>Latest Remark</label>
                  <textarea className={inputClass}
                     rows="3" placeholder="Type notes here..."
                     value={formData.remarks} onChange={e => setFormData({...formData, remarks: e.target.value})} />

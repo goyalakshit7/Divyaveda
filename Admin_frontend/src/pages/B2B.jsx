@@ -220,9 +220,7 @@ const B2B = () => {
                 Show All Orders
               </button>
             )}
-            <button onClick={clearFilters} className="bg-slate-700 text-white px-3 py-1.5 rounded text-sm hover:bg-slate-600 flex items-center gap-2">
-                ❌ Reset
-            </button>
+          
             <PermissionGate routeName="B2B_CREATE">
                 <button onClick={openAdd} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-500 shadow-md">
                   + Add New Order
@@ -253,50 +251,63 @@ const B2B = () => {
       </div>
 
       {/* --- FILTER BAR (Functional Grid) --- */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <input 
-            placeholder="Search client/mobile..."
-            className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
-            value={filters.search}
-            onChange={(e) => handleFilterChange("search", e.target.value)}
-          />
-          <select 
-            className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
-            value={filters.order_status}
-            onChange={(e) => handleFilterChange("order_status", e.target.value)}
-          >
-              <option value="">Order Status</option>
-              <option value="OPEN">OPEN</option>
-              <option value="PARTIAL">PARTIAL</option>
-              <option value="CLOSED">CLOSED</option>
-          </select>
-          <select 
-            className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
-            value={filters.platform}
-            onChange={(e) => handleFilterChange("platform", e.target.value)}
-          >
-              <option value="">All Platforms</option>
-              <option value="fb">Facebook</option>
-              <option value="ig">Instagram</option>
-              <option value="inbound">Inbound</option>
-          </select>
-          <div className="flex gap-2 flex-col sm:flex-row">
-            <input 
-              type="date"
-              className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
-              value={filters.from_date}
-              onClick={(e) => e.target.showPicker && e.target.showPicker()}
-              onChange={(e) => handleFilterChange("from_date", e.target.value)}
-            />
-            <input 
-              type="date"
-              className="w-full sm:w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-base sm:text-[10px] text-white outline-none"
-              value={filters.to_date}
-              onClick={(e) => e.target.showPicker && e.target.showPicker()}
-              onChange={(e) => handleFilterChange("to_date", e.target.value)}
-            />
-          </div>
-      </div>
+ <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+  
+  <input 
+    placeholder="Search client/mobile..."
+    className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
+    value={filters.search}
+    onChange={(e) => handleFilterChange("search", e.target.value)}
+  />
+
+  <select 
+    className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
+    value={filters.order_status}
+    onChange={(e) => handleFilterChange("order_status", e.target.value)}
+  >
+    <option value="">Order Status</option>
+    <option value="OPEN">OPEN</option>
+    <option value="PARTIAL">PARTIAL</option>
+    <option value="CLOSED">CLOSED</option>
+  </select>
+
+  <select 
+    className="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none focus:border-blue-500"
+    value={filters.platform}
+    onChange={(e) => handleFilterChange("platform", e.target.value)}
+  >
+    <option value="">All Platforms</option>
+    <option value="fb">Facebook</option>
+    <option value="ig">Instagram</option>
+    <option value="inbound">Inbound</option>
+  </select>
+
+  <div className="flex gap-2">
+    <input 
+      type="date"
+      className="w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none"
+      value={filters.from_date}
+      onClick={(e) => e.target.showPicker?.()}
+      onChange={(e) => handleFilterChange("from_date", e.target.value)}
+    />
+    <input 
+      type="date"
+      className="w-1/2 bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white outline-none"
+      value={filters.to_date}
+      onClick={(e) => e.target.showPicker?.()}
+      onChange={(e) => handleFilterChange("to_date", e.target.value)}
+    />
+  </div>
+
+  <button
+    onClick={clearFilters}
+    className="bg-slate-700 text-white px-3 py-2 rounded text-sm hover:bg-slate-600 flex items-center justify-center gap-2 w-full"
+  >
+     Reset
+  </button>
+
+</div>
+
 
       {/* TABLE */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto">
@@ -317,8 +328,7 @@ const B2B = () => {
                 <th className="p-3 text-left text-green-400">Received</th>
                 <th className="p-3 text-left text-yellow-300">Pending</th>
                 <th className="p-3 text-left">Status</th>
-                <th className="p-3 text-left">Created By</th>
-                <th className="p-3 text-left">Assigned To</th>
+             
                 <th className="p-3 text-left">Converted By</th>
                 <th className="p-3 text-left">Actions</th>
               </tr>
@@ -341,12 +351,7 @@ const B2B = () => {
                         {r.order_status}
                     </span>
                   </td>
-                  <td className="p-3 whitespace-nowrap text-xs">
-                      {r.created_by?.name || r.created_by?.email || r.lead_id?.created_by?.name || r.lead_id?.created_by?.email || "-"}
-                  </td>
-                  <td className="p-3 whitespace-nowrap text-xs">
-                      {r.assigned_to?.name || r.assigned_to?.email || r.lead_id?.assigned_to?.name || r.lead_id?.assigned_to?.email || "-"}
-                  </td>
+                  
                   <td className="p-3 whitespace-nowrap text-xs">
                       {r.converted_by?.name || r.converted_by?.email || r.lead_id?.converted_by?.name || r.lead_id?.converted_by?.email || "-"}
                   </td>
