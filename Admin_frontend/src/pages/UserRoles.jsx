@@ -4,6 +4,7 @@ import PermissionGate from "../components/PermissionGate";
 
 const UserRoles = () => {
   const [users, setUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -11,20 +12,24 @@ const UserRoles = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [targetUser, setTargetUser] = useState(null);
   const [selectedRoleId, setSelectedRoleId] = useState("");
+  const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState("");
 
   const safeExtract = (res, key) => res.data[key] || res.data || [];
 
-  // Load users + roles
+  // Load users + roles + employees
   const loadData = async () => {
     try {
-      const [usersRes, rolesRes] = await Promise.all([
+      const [usersRes, rolesRes, employeesRes] = await Promise.all([
         api.get("/admin/users"),
-        api.get("/admin/roles")
+        api.get("/admin/roles"),
+        api.get("/admin/employees")
       ]);
       setUsers(safeExtract(usersRes, "users"));
       setRoles(safeExtract(rolesRes, "roles"));
+      setEmployees(safeExtract(employeesRes, "data"));
     } catch {
       setError("Failed to load data");
     } finally {
@@ -36,7 +41,7 @@ const UserRoles = () => {
     loadData();
   }, []);
 
-  // Assign role
+  // Assign role to existing user
   const handleAssign = async (e) => {
     e.preventDefault();
     if (!targetUser) return;
@@ -60,10 +65,40 @@ const UserRoles = () => {
     }
   };
 
+  // Assign role to employee from Employee Master
+  const handleAddRoleAssignment = async (e) => {
+    e.preventDefault();
+    if (!selectedEmployeeEmail || !selectedRoleId) {
+      alert("Please select both employee and role");
+      return;
+    }
+
+    try {
+      await api.post("/admin/users/assign", {
+        email: selectedEmployeeEmail,
+        role_id: selectedRoleId
+      });
+
+      alert("Role assigned successfully!");
+      setIsAddModalOpen(false);
+      setSelectedEmployeeEmail("");
+      setSelectedRoleId("");
+      loadData();
+    } catch (e) {
+      alert(e.response?.data?.message || "Assignment failed");
+    }
+  };
+
   const openModal = (user) => {
     setTargetUser(user);
     setSelectedRoleId(user.role_id?._id || user.role_id || "");
     setIsModalOpen(true);
+  };
+
+  const openAddModal = () => {
+    setSelectedEmployeeEmail("");
+    setSelectedRoleId("");
+    setIsAddModalOpen(true);
   };
 
   const filteredUsers = users.filter(u =>
@@ -81,12 +116,23 @@ const UserRoles = () => {
 
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h1 className="text-2xl font-bold">
-            User Role Assignment
-          </h1>
-          <div className="text-sm text-[var(--text-muted)]">
-            {users.length} users
+          <div>
+            <h1 className="text-2xl font-bold">
+              User Role Assignment
+            </h1>
+            <div className="text-sm text-[var(--text-muted)]">
+              {users.length} users
+            </div>
           </div>
+          
+          <PermissionGate routeName="USER_ROLE_ASSIGN">
+            <button 
+              onClick={openAddModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
+            >
+              ➕ Add Role Assignment
+            </button>
+          </PermissionGate>
         </div>
 
         {error && (
@@ -225,6 +271,87 @@ const UserRoles = () => {
                     className="flex-1 py-2 rounded-lg bg-blue-600 text-white"
                   >
                     Save
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        )}
+
+        {/* ADD ROLE ASSIGNMENT MODAL (From Employee Master) */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl w-full max-w-md p-6">
+
+              <h2 className="text-xl font-bold mb-4">
+                Assign Role to Employee
+              </h2>
+
+              <form onSubmit={handleAddRoleAssignment} className="space-y-4">
+                {/* Employee Email Dropdown */}
+                <div>
+                  <label className="block mb-1 text-sm font-semibold text-[var(--text-muted)]">
+                    Employee Email *
+                  </label>
+                  <select
+                    required
+                    className="w-full
+                      border border-[var(--border-primary)]
+                      rounded-lg px-3 py-2
+                      bg-[var(--bg-card)]
+                      text-[var(--text-primary)]"
+                    value={selectedEmployeeEmail}
+                    onChange={e => setSelectedEmployeeEmail(e.target.value)}
+                  >
+                    <option value="">-- Select Employee --</option>
+                    {employees
+                      .filter(emp => emp.isActive)
+                      .map(emp => (
+                        <option key={emp._id} value={emp.email}>
+                          {emp.employee_name} ({emp.email})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Role Dropdown */}
+                <div>
+                  <label className="block mb-1 text-sm font-semibold text-[var(--text-muted)]">
+                    Role *
+                  </label>
+                  <select
+                    required
+                    className="w-full
+                      border border-[var(--border-primary)]
+                      rounded-lg px-3 py-2
+                      bg-[var(--bg-card)]
+                      text-[var(--text-primary)]"
+                    value={selectedRoleId}
+                    onChange={e => setSelectedRoleId(e.target.value)}
+                  >
+                    <option value="">-- Select Role --</option>
+                    {roles.map(r => (
+                      <option key={r._id} value={r._id}>
+                        {r.role_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-[var(--border-primary)]">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="flex-1 py-2 rounded-lg border border-[var(--border-primary)]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 rounded-lg bg-blue-600 text-white"
+                  >
+                    Assign Role
                   </button>
                 </div>
               </form>
