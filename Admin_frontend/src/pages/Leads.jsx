@@ -673,9 +673,9 @@ const Leads = () => {
                         {l.assigned_to ? (
                              <div className="flex items-center gap-1">
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? "bg-indigo-900/50 text-indigo-400" : "bg-indigo-100 text-indigo-600"}`}>
-                                    {(l.assigned_to.name?.[0] || "U").toUpperCase()}
+                                    {(l.assigned_to.username?.[0] || "U").toUpperCase()}
                                 </div>
-                                <span>{l.assigned_to.name || "User"}</span>
+                                <span>{l.assigned_to.username || "User"}</span>
                              </div>
                         ) : <span className={`text-xs italic ${isDark ? "text-slate-600" : "text-gray-400"}`}>Unassigned</span>}
                     </td>

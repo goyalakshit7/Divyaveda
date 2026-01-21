@@ -111,9 +111,9 @@ export const getAllLeads = async (req, res) => {
     const pendingCount = await Lead.countDocuments({ ...query, converted: false });
 
     const leads = await Lead.find(query)
-      .populate("assigned_to", "name email")
-      .populate("created_by", "name email")
-      .populate("converted_by", "name email")
+      .populate("assigned_to", "username email")
+      .populate("created_by", "username email")
+      .populate("converted_by", "username email")
       .sort({ created_date: -1 }) // sort by business date
       .skip(skip)
       .limit(limit);
@@ -293,9 +293,9 @@ export const updateLead = async (req, res) => {
     }
 
     const updatedLead = await Lead.findById(leadId)
-      .populate("assigned_to", "name email")
-      .populate("created_by", "name email")
-      .populate("converted_by", "name email");
+      .populate("assigned_to", "username email")
+      .populate("created_by", "username email")
+      .populate("converted_by", "username email");
 
     res.json({ message: "Lead updated successfully", lead: updatedLead });
   } catch (error) {

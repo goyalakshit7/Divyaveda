@@ -144,6 +144,7 @@ export const login = async (req, res) => {
         name: user.username,
         email: user.email,
         role: user.role_id?.role_name || null,
+        role_id: user.role_id || null, // Include full role object
         permissions: permissions,
         isSuperAdmin: user.isSuperAdmin || false
       }
@@ -171,6 +172,7 @@ export const getMe = async (req, res) => {
       name: user.username,
       email: user.email,
       role: user.role_id?.role_name || null,
+      role_id: user.role_id || null, // Include full role object
       permissions: permissions,
       isSuperAdmin: user.isSuperAdmin || false
     });

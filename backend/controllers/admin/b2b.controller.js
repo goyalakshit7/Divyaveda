@@ -151,14 +151,14 @@ export const listB2B = async (req, res) => {
       .populate({
         path: "lead_id",
         populate: [
-          { path: "assigned_to", select: "name email" },
-          { path: "converted_by", select: "name email" },
-          { path: "created_by", select: "name email" }
+          { path: "assigned_to", select: "username email" },
+          { path: "converted_by", select: "username email" },
+          { path: "created_by", select: "username email" }
         ]
       })
-      .populate("converted_by", "name email")
-      .populate("created_by", "name email")
-      .populate("assigned_to", "name email")
+      .populate("converted_by", "username email")
+      .populate("created_by", "username email")
+      .populate("assigned_to", "username email")
       .sort({ sr_no: -1 }) // Sort by Sr No desc
       .skip(skip)
       .limit(Number(limit));
@@ -259,8 +259,8 @@ export const updateB2B = async (req, res) => {
 
     const record = await B2B.findById(b2bId)
       .populate("lead_id")
-      .populate("converted_by", "name email")
-      .populate("created_by", "name email");
+      .populate("converted_by", "username email")
+      .populate("created_by", "username email");
 
     if (!record) {
       return res.status(404).json({ message: "B2B not found" });
@@ -310,8 +310,8 @@ export const updateB2B = async (req, res) => {
       { new: true }
     )
       .populate("lead_id")
-      .populate("converted_by", "name email")
-      .populate("created_by", "name email");
+      .populate("converted_by", "username email")
+      .populate("created_by", "username email");
 
     res.json({
       message: "B2B updated successfully",

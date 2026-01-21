@@ -55,7 +55,9 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="px-4 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] text-sm">
-           Role: <span className="text-[var(--text-primary)] font-semibold">{admin?.isSuperAdmin ? "Super Admin" : "Staff"}</span>
+           Role: <span className="text-[var(--text-primary)] font-semibold">
+             {admin?.isSuperAdmin ? "Super Admin" : (admin?.role_id?.role_name || "Simple User")}
+           </span>
         </div>
       </div>
 
