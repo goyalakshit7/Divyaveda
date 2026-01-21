@@ -11,6 +11,7 @@ const Dashboard = () => {
     categories: 0,
     activeBundles: 0
   });
+  const [userRoles, setUserRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +45,53 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
+  // Fetch user's role assignments
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (!admin?.email) return;
+
+      try {
+        const res = await api.get(`/admin/user-role-assignments?user_email=${admin.email}`);
+        const assignments = res.data?.data || [];
+        
+        // Extract role names from active assignments
+        const activeRoles = assignments
+          .filter(a => a.isActive)
+          .map(a => a.role_id?.role_name)
+          .filter(Boolean);
+        
+        setUserRoles(activeRoles);
+      } catch (err) {
+        console.error("Failed to fetch user roles:", err);
+      }
+    };
+
+    fetchUserRoles();
+  }, [admin?.email]);
+
+  // Determine what roles to display
+  const getRoleDisplay = () => {
+    if (admin?.isSuperAdmin) {
+      return "Super Admin";
+    }
+
+    const allRoles = [];
+    
+    // Add single role if exists
+    if (admin?.role_id?.role_name) {
+      allRoles.push(admin.role_id.role_name);
+    }
+    
+    // Add multi-roles
+    userRoles.forEach(role => {
+      if (!allRoles.includes(role)) {
+        allRoles.push(role);
+      }
+    });
+
+    return allRoles.length > 0 ? allRoles.join(", ") : "Simple User";
+  };
+
   return (
     <div className="space-y-6 lg:space-y-8 max-w-full overflow-x-hidden">
       {/* HEADER */}
@@ -55,8 +103,8 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="px-4 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] text-sm">
-           Role: <span className="text-[var(--text-primary)] font-semibold">
-             {admin?.isSuperAdmin ? "Super Admin" : (admin?.role_id?.role_name || "Simple User")}
+           Roles: <span className="text-[var(--text-primary)] font-semibold">
+             {getRoleDisplay()}
            </span>
         </div>
       </div>
