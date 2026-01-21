@@ -25,6 +25,7 @@ import UserRoles from "./pages/UserRoles";
 import Analytics from "./pages/Analytics";
 import Leads from "./pages/Leads";
 import B2B from "./pages/B2B";
+import AdminMaster from "./pages/AdminMaster";
 
 import "./App.css";
 
@@ -166,6 +167,12 @@ const Shell = ({ children }) => {
           <Link to="/admin/b2b" onClick={() => setSidebarOpen(false)} className={linkClass}>
             B2B Sales
           </Link>
+          
+          {admin?.isSuperAdmin && (
+            <Link to="/admin/employee-master" onClick={() => setSidebarOpen(false)} className={linkClass}>
+              Employee Master
+            </Link>
+          )}
         </nav>
       </aside>
 
@@ -254,6 +261,7 @@ function App() {
         <Route path="/admin/user-roles" element={<Shell><UserRoles /></Shell>} />
         <Route path="/admin/analytics" element={<Shell><Analytics /></Shell>} />
         <Route path="/admin/leads" element={<Shell><Leads /></Shell>} />
+        <Route path="/admin/employee-master" element={<Shell><AdminMaster /></Shell>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/admin" replace />} />
