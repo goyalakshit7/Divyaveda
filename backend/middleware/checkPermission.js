@@ -1,55 +1,82 @@
 import { Role } from "../models/role.master.js";
-import { User } from "../models/user.master.js"; // <--- ADD THIS IMPORT
+import { User } from "../models/user.master.js";
+import { UserRoleAssignment } from "../models/userRoleAssignment.master.js";
 
 export const checkPermission = (requiredPermission) => {
   return async (req, res, next) => {
     try {
-      // 1. Check if we already have the Role ID
+      // 1. Super Admin Bypass (ALWAYS FIRST)
+      if (req.user.isSuperAdmin) {
+        return next();
+      }
+
+      // 2. Try OLD System: Check single role_id
       let userRoleId = req.user.role_id;
-      let userRoleName = ""; // To store name for super admin check
-          if (req.user.isSuperAdmin) {
 
-        return next();
-
-      }
-      // ---------------------------------------------------------
-      // 🚑 SELF-HEALING FIX: If Role ID is missing, fetch it now!
-      // ---------------------------------------------------------
+      // Self-healing: Fetch role_id if missing
       if (!userRoleId) {
-        console.log(`⚠️ Role ID missing for user ${req.user.id}. Fetching from DB...`);
         const user = await User.findById(req.user.id);
-        
-        if (!user || !user.role_id) {
-           console.log("❌ Denied: User has no role assigned in DB.");
-           return res.status(403).json({ message: "Access Denied: No Role Assigned" });
+        userRoleId = user?.role_id;
+      }
+
+      // Check old single role system
+      if (userRoleId) {
+        const role = await Role.findById(userRoleId);
+
+        if (role) {
+          // Super Admin check (role-based)
+          if (role.role_name === "Super Admin") {
+            return next();
+          }
+
+          // Check permission in old single role
+          if (role.screen_access && role.screen_access.includes(requiredPermission)) {
+            console.log(`✅ Permission granted via single role: ${role.role_name}`);
+            return next(); // ✅ SUCCESS via old system
+          }
         }
-        
-        userRoleId = user.role_id; // Found it!
-      }
-      // ---------------------------------------------------------
-
-      // 2. Fetch the Role Details (Permissions)
-      const role = await Role.findById(userRoleId);
-
-      if (!role) {
-        console.log("❌ Denied: Role ID exists but Role not found in DB.");
-        return res.status(403).json({ message: "Access Denied: Role not found" });
       }
 
-      // 3. Super Admin Bypass
-      if (role.role_name === "Super Admin") {
-        return next();
+      // 3. NEW System: Check multi-role assignments
+      // Get user email for multi-role lookup
+      let userEmail = req.user.email;
+      if (!userEmail) {
+        const user = await User.findById(req.user.id);
+        userEmail = user?.email;
       }
 
-      // 4. CHECK PERMISSION
-      if (role.screen_access && role.screen_access.includes(requiredPermission)) {
-        return next(); // ✅ Success
+      if (userEmail) {
+        // Find all ACTIVE role assignments for this user
+        const roleAssignments = await UserRoleAssignment.find({
+          user_email: userEmail.toLowerCase(),
+          isActive: true
+        }).populate("role_id");
+
+        console.log(`🔍 Multi-role check for ${userEmail}: Found ${roleAssignments.length} active assignments`);
+
+        // Check each assigned role for the permission
+        for (const assignment of roleAssignments) {
+          const role = assignment.role_id;
+
+          if (role) {
+            // Super Admin check (role-based)
+            if (role.role_name === "Super Admin") {
+              return next();
+            }
+
+            // Check permission in this role
+            if (role.screen_access && role.screen_access.includes(requiredPermission)) {
+              console.log(`✅ Permission granted via multi-role: ${role.role_name}`);
+              return next(); // ✅ SUCCESS via new system
+            }
+          }
+        }
       }
 
-      // 5. Fail
-      console.log(`❌ Denied: Role '${role.role_name}' lacks '${requiredPermission}'`);
-      return res.status(403).json({ 
-        message: `Access Denied: You need ${requiredPermission} permission.` 
+      // 4. DENIED: No permission found in either system
+      console.log(`❌ Denied: User lacks '${requiredPermission}' in any assigned role`);
+      return res.status(403).json({
+        message: `Access Denied: You need ${requiredPermission} permission.`
       });
 
     } catch (error) {

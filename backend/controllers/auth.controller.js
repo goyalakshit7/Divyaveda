@@ -124,7 +124,29 @@ export const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    const permissions = user.role_id?.screen_access || [];
+    // Aggregate permissions from BOTH systems
+    const permissionsSet = new Set();
+
+    // 1. Get permissions from old single role system
+    if (user.role_id?.screen_access) {
+      user.role_id.screen_access.forEach(p => permissionsSet.add(p));
+    }
+
+    // 2. Get permissions from new multi-role assignments
+    const { UserRoleAssignment } = await import("../models/userRoleAssignment.master.js");
+    const roleAssignments = await UserRoleAssignment.find({
+      user_email: user.email.toLowerCase(),
+      isActive: true
+    }).populate("role_id");
+
+    roleAssignments.forEach(assignment => {
+      if (assignment.role_id?.screen_access) {
+        assignment.role_id.screen_access.forEach(p => permissionsSet.add(p));
+      }
+    });
+
+    // Convert Set to Array
+    const permissions = Array.from(permissionsSet);
 
     user.last_login = new Date();
     await user.save();
@@ -144,8 +166,8 @@ export const login = async (req, res) => {
         name: user.username,
         email: user.email,
         role: user.role_id?.role_name || null,
-        role_id: user.role_id || null, // Include full role object
-        permissions: permissions,
+        role_id: user.role_id || null,
+        permissions: permissions, // Combined permissions from all roles
         isSuperAdmin: user.isSuperAdmin || false
       }
     });
@@ -153,6 +175,7 @@ export const login = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 export const getMe = async (req, res) => {
@@ -165,15 +188,37 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const permissions = user.role_id?.screen_access || [];
+    // Aggregate permissions from BOTH systems
+    const permissionsSet = new Set();
+
+    // 1. Get permissions from old single role system
+    if (user.role_id?.screen_access) {
+      user.role_id.screen_access.forEach(p => permissionsSet.add(p));
+    }
+
+    // 2. Get permissions from new multi-role assignments
+    const { UserRoleAssignment } = await import("../models/userRoleAssignment.master.js");
+    const roleAssignments = await UserRoleAssignment.find({
+      user_email: user.email.toLowerCase(),
+      isActive: true
+    }).populate("role_id");
+
+    roleAssignments.forEach(assignment => {
+      if (assignment.role_id?.screen_access) {
+        assignment.role_id.screen_access.forEach(p => permissionsSet.add(p));
+      }
+    });
+
+    // Convert Set to Array
+    const permissions = Array.from(permissionsSet);
 
     res.json({
       id: user._id,
       name: user.username,
       email: user.email,
       role: user.role_id?.role_name || null,
-      role_id: user.role_id || null, // Include full role object
-      permissions: permissions,
+      role_id: user.role_id || null,
+      permissions: permissions, // Combined permissions from all roles
       isSuperAdmin: user.isSuperAdmin || false
     });
   } catch (error) {

@@ -29,6 +29,7 @@ export const isAuthenticated = async (req, res, next) => {
     req.user = {
       id: user._id,
       email: user.email,
+      role_id: user.role_id, // For backward compatibility with old role system
       isSuperAdmin: user.isSuperAdmin === true
     };
 

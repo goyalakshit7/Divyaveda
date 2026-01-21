@@ -22,6 +22,7 @@ import userRoleMapRoutes from "./routes/admin/userRoleMap.routes.js";
 import analyticsRoutes from "./routes/admin/analytics.routes.js";
 import b2bRoutes from "./routes/admin/b2b.routes.js";
 import employeeRoutes from "./routes/admin/employee.routes.js";
+import userRoleAssignmentRoutes from "./routes/admin/userRoleAssignment.routes.js";
 
 import leadRoutes from "./routes/admin/lead.routes.js"; // <--- Import
 import publicCategoryRoutes from "./routes/public/category.public.routes.js";
@@ -79,6 +80,7 @@ app.use("/api/admin/user-roles", userRoleMapRoutes);
 app.use("/api/admin/analytics", analyticsRoutes);
 app.use("/api/admin/b2b", b2bRoutes);
 app.use("/api/admin/employees", employeeRoutes);
+app.use("/api/admin/user-role-assignments", userRoleAssignmentRoutes);
 
 // ... existing routes ...
 app.use("/api/admin/leads", leadRoutes); // <--- Add this
