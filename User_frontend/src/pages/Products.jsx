@@ -19,11 +19,12 @@ const Products = () => {
   const search = searchParams.get("search") || "";
 
   useEffect(() => {
-    // Fetch categories for sidebar
+    // Fetch categories for sidebar (public - no auth needed)
     const fetchCategories = async () => {
       try {
-        const res = await api.get("/admin/categories");
-        setCategories(res.data.data || res.data || []);
+        const res = await fetch("http://localhost:8000/api/categories");
+        const data = await res.json();
+        setCategories(data.categories || data || []);
       } catch (err) {
         console.error("Failed to fetch categories");
       }

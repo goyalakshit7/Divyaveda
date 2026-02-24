@@ -4,8 +4,13 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "build:user": "cd ../User_frontend && npm run build",
+    "build:admin": "cd ../Admin_frontend && npm run build",
+    "build:all": "npm run build:user && npm run build:admin",
+    "dev": "node index.js"
   },
+
   "keywords": [],
   "author": "",
   "license": "ISC",

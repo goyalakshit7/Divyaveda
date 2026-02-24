@@ -19,8 +19,29 @@ export const getAllProducts = async (req, res) => {
 
     const query = { isActive: true };
 
-    if (category) query.category_id = category;
-    if (subcategory) query.subcategory_id = subcategory;
+    // category can be an ObjectId OR a name slug like "immunity"
+    if (category) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(category);
+      if (isObjectId) {
+        query.category_id = category;
+      } else {
+        const cat = await Category.findOne({ name: { $regex: `^${category}$`, $options: "i" } }).select("_id");
+        if (cat) query.category_id = cat._id;
+        else query.category_id = null; // no products will match — clean 0-result response
+      }
+    }
+
+    // subcategory can be an ObjectId OR a name slug
+    if (subcategory) {
+      const isObjectId = /^[a-f\d]{24}$/i.test(subcategory);
+      if (isObjectId) {
+        query.subcategory_id = subcategory;
+      } else {
+        const sub = await SubCategory.findOne({ name: { $regex: `^${subcategory}$`, $options: "i" } }).select("_id");
+        if (sub) query.subcategory_id = sub._id;
+        else query.subcategory_id = null;
+      }
+    }
 
     if (search) {
       query.name = { $regex: search, $options: "i" };

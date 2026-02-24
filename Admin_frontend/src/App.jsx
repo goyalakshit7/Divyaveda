@@ -1,9 +1,10 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PermissionGate from "./components/PermissionGate";
 import { useAdminAuth } from "./context/AuthContext";
 import { useTheme } from "./context/ThemeContext";
+import api from "./api/axios";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -26,8 +27,54 @@ import Analytics from "./pages/Analytics";
 import Leads from "./pages/Leads";
 import B2B from "./pages/B2B";
 import AdminMaster from "./pages/AdminMaster";
+import Orders from "./pages/Orders";
 
 import "./App.css";
+
+/* Launcher shown at localhost:5174/ — lets you choose store or admin */
+const Launcher = () => (
+  <div style={{
+    minHeight: "100vh", display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
+    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+    fontFamily: "system-ui, sans-serif", gap: "2rem"
+  }}>
+    <div style={{ textAlign: "center", color: "#fff" }}>
+      <h1 style={{ fontSize: "2.5rem", fontWeight: 800, margin: 0 }}>
+        Divya<span style={{ color: "#4ade80" }}>veda</span>
+      </h1>
+      <p style={{ color: "#94a3b8", marginTop: "0.5rem", fontSize: "1rem" }}>
+        Select where you want to go
+      </p>
+    </div>
+    <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+      <a
+        href="http://localhost:5173/"
+        style={{
+          padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
+          fontWeight: 600, cursor: "pointer", textDecoration: "none",
+          background: "#16a34a", color: "#fff", border: "none",
+          boxShadow: "0 4px 24px rgba(22,163,74,0.35)",
+          transition: "transform 0.15s"
+        }}
+      >
+        🌿 Visit Store
+      </a>
+      <a
+        href="/admin"
+        style={{
+          padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
+          fontWeight: 600, cursor: "pointer", textDecoration: "none",
+          background: "#1e40af", color: "#fff", border: "none",
+          boxShadow: "0 4px 24px rgba(30,64,175,0.35)",
+          transition: "transform 0.15s"
+        }}
+      >
+        ⚙️ Admin Panel
+      </a>
+    </div>
+  </div>
+);
 
 /* =========================
    SHELL LAYOUT
@@ -36,6 +83,20 @@ const Shell = ({ children }) => {
   const { admin, logout } = useAdminAuth();
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [newOrderCount, setNewOrderCount] = useState(0);
+
+  // Poll for new orders every 30 seconds
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get("/admin/orders/stats");
+        setNewOrderCount(res.data.placed || 0);
+      } catch (e) { /* silent fail */ }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const linkClass =
     "block px-3 py-2 rounded-lg transition-all duration-200 " +
@@ -75,12 +136,25 @@ const Shell = ({ children }) => {
           </div>
         </div>
 
-        {/* ✅ SCROLLABLE NAV */}
+        {/* SCROLLABLE NAV */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 text-sm">
           <Link to="/admin" onClick={() => setSidebarOpen(false)} className={linkClass}>
             Dashboard
           </Link>
 
+          {/* ORDERS — always visible with badge */}
+          <Link
+            to="/admin/orders"
+            onClick={() => setSidebarOpen(false)}
+            className={linkClass + " flex items-center justify-between"}
+          >
+            <span>📦 Orders</span>
+            {newOrderCount > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-600 text-white rounded-full animate-pulse">
+                {newOrderCount > 99 ? "99+" : newOrderCount}
+              </span>
+            )}
+          </Link>
           <div className={sectionTitle}>Catalog</div>
           <PermissionGate routeName="CATEGORY_VIEW">
             <Link to="/admin/categories" onClick={() => setSidebarOpen(false)} className={linkClass}>
@@ -261,10 +335,16 @@ function App() {
         <Route path="/admin/user-roles" element={<Shell><UserRoles /></Shell>} />
         <Route path="/admin/analytics" element={<Shell><Analytics /></Shell>} />
         <Route path="/admin/leads" element={<Shell><Leads /></Shell>} />
+        <Route path="/admin/orders" element={<Shell><Orders /></Shell>} />
         <Route path="/admin/employee-master" element={<Shell><AdminMaster /></Shell>} />
       </Route>
 
+      {/* Root redirect → user frontend */}
+      <Route path="/" element={<Launcher />} />
+
+      {/* Catch-all → admin dashboard (requires login) */}
       <Route path="*" element={<Navigate to="/admin" replace />} />
+
     </Routes>
   );
 }

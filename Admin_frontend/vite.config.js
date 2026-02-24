@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
-export default defineConfig({
+// base is '/admin' when building for production, '/' for local dev
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-})
+  base: command === 'build' ? '/admin' : '/',
+}))
+

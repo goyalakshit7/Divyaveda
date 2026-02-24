@@ -2,10 +2,19 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import userAdminRoutes from "./routes/admin/user.routes.js"
 import authRoutes from "./routes/auth.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import publicProductRoutes from "./routes/public/product.public.routes.js";
+import orderRoutes from "./routes/order.routes.js";
+import addressRoutes from "./routes/address.routes.js";
 import categoryRoutes from "./routes/admin/category.routes.js";
 import subcategoryRoutes from "./routes/admin/subcategory.routes.js";
 import productRoutes from "./routes/admin/product.routes.js";
@@ -24,9 +33,10 @@ import b2bRoutes from "./routes/admin/b2b.routes.js";
 import employeeRoutes from "./routes/admin/employee.routes.js";
 import userRoleAssignmentRoutes from "./routes/admin/userRoleAssignment.routes.js";
 
-import leadRoutes from "./routes/admin/lead.routes.js"; // <--- Import
+import leadRoutes from "./routes/admin/lead.routes.js";
 import publicCategoryRoutes from "./routes/public/category.public.routes.js";
 import publicSubcategoryRoutes from "./routes/public/subcategory.public.routes.js";
+import adminOrderRoutes from "./routes/admin/order.admin.routes.js";
 console.log("🔥 BACKEND BOOTED AT", new Date().toISOString());
 
 dotenv.config();//for loading env variables
@@ -60,10 +70,13 @@ app.get("/health", (req, res) => { //for devops->Quick backend alive test
 //declaration of routes:-
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);  // User orders
+app.use("/api/addresses", addressRoutes);  // User addresses
 app.use("/api/admin/users", userAdminRoutes);
 app.use("/api/products", publicProductRoutes);
 app.use("/api/categories", publicCategoryRoutes);  // Public categories
 app.use("/api/subcategories", publicSubcategoryRoutes);  // Public subcategories
+console.log("✅ PUBLIC ROUTES REGISTERED: /api/categories, /api/subcategories");
 app.use("/api/admin/categories", categoryRoutes);
 app.use("/api/admin/subcategories", subcategoryRoutes);
 app.use("/api/admin/products", productRoutes);
@@ -82,20 +95,36 @@ app.use("/api/admin/b2b", b2bRoutes);
 app.use("/api/admin/employees", employeeRoutes);
 app.use("/api/admin/user-role-assignments", userRoleAssignmentRoutes);
 
-// ... existing routes ...
-app.use("/api/admin/leads", leadRoutes); // <--- Add this
-app.get("/", (req, res) => { //server starts
-  res.json({
-    message: "Backend is running",
-    status: "OK"
-  });
-});
+app.use("/api/admin/leads", leadRoutes);
+app.use("/api/admin/orders", adminOrderRoutes);  // Admin order management
+// ──────────────────────────────────────────────────
+// STATIC FRONTEND SERVING (Production only)
+// These blocks only activate when dist/ folders exist
+// i.e. after running: npm run build in each frontend
+// ──────────────────────────────────────────────────
+const adminDist = path.join(__dirname, "../Admin_frontend/dist");
+const userDist = path.join(__dirname, "../User_frontend/dist");
 
-app.use((req, res) => {
-  res.status(404).json({
-    message: "API route not found"
+// Serve admin frontend at /admin (built with base='/admin')
+if (fs.existsSync(adminDist)) {
+  app.use("/admin", express.static(adminDist));
+  app.get("/admin", (req, res) => res.sendFile(path.join(adminDist, "index.html")));
+  app.get("/admin/*", (req, res) => res.sendFile(path.join(adminDist, "index.html")));
+  console.log("✅ Admin frontend served at /admin");
+}
+
+// Serve user frontend at / (everything not /api or /admin)
+if (fs.existsSync(userDist)) {
+  app.use(express.static(userDist));
+  app.get("*", (req, res) => {
+    if (!req.path.startsWith("/api") && !req.path.startsWith("/admin")) {
+      res.sendFile(path.join(userDist, "index.html"));
+    }
   });
-});
+  console.log("✅ User frontend served at /");
+}
+
+
 const PORT = process.env.PORT || 8000;
 
 mongoose //connect mongoose

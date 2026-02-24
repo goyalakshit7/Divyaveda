@@ -8,6 +8,7 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { CartProvider } from './context/CartContext';
 import { OrderProvider } from './context/OrderContext';
+import { AddressProvider } from './context/AddressContext.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,19 +16,10 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <CartProvider>
           <OrderProvider>
-            <App />
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
+            <AddressProvider>
+              <App />
+              <ToastContainer position="top-right" autoClose={3000} />
+            </AddressProvider>
           </OrderProvider>
         </CartProvider>
       </AuthProvider>

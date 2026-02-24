@@ -20,17 +20,21 @@ const Home = () => {
     try {
       setLoading(true);
       
-      // Fetch categories
-      const categoriesRes = await api.get("/categories");
-      setCategories((categoriesRes.data?.categories || categoriesRes.data || []).slice(0, 4));
+      // Fetch categories (public - no auth needed)
+      // Using axios directly to skip auth interceptor
+      const categoriesRes = await fetch("http://localhost:8000/api/categories");
+      const categoriesData = await categoriesRes.json();
+      setCategories((categoriesData?.categories || categoriesData || []).slice(0, 4));
 
-      // Fetch subcategories
-      const subcategoriesRes = await api.get("/subcategories");
-      setSubcategories((subcategoriesRes.data?.subcategories || subcategoriesRes.data || []).slice(0, 4));
+      // Fetch subcategories (public - no auth needed)
+      const subcategoriesRes = await fetch("http://localhost:8000/api/subcategories");
+      const subcategoriesData = await subcategoriesRes.json();
+      setSubcategories((subcategoriesData?.subcategories || subcategoriesData || []).slice(0, 4));
 
-      // Fetch featured/new launch products
-      const productsRes = await api.get("/products?limit=8");
-      const allProducts = productsRes.data?.products || productsRes.data || [];
+      // Fetch featured/new launch products (public - no auth needed)
+      const productsRes = await fetch("http://localhost:8000/api/products?limit=8");
+      const productsData = await productsRes.json();
+      const allProducts = productsData?.products || productsData || [];
       setFeaturedProducts(allProducts.filter(p => p.is_new_launch).slice(0, 4));
       setBestSellers(allProducts.slice(0, 4));
       

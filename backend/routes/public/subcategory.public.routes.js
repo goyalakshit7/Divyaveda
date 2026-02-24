@@ -3,7 +3,8 @@ import { SubCategory } from "../../models/subcategory.master.js";
 
 const router = express.Router();
 
-// Get all active subcategories (can filter by category_id)
+// Get all active subcategories (PUBLIC - no auth required)
+// Can filter by category_id query param
 router.get("/", async (req, res) => {
     try {
         const { category_id } = req.query;
@@ -24,7 +25,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Get subcategory by ID
+// Get subcategory by ID (PUBLIC - no auth required)
 router.get("/:id", async (req, res) => {
     try {
         const subcategory = await SubCategory.findOne({

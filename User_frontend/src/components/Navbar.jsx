@@ -4,7 +4,7 @@ import { useCart } from "../context/CartContext";
 import { ShoppingBag, User, LogOut, Menu, Search, X } from 'lucide-react';
 import Button from "./Button";
 import Input from "./Input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -12,7 +12,16 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [navCategories, setNavCategories] = useState([]);
+
+  // Fetch top-level categories for nav links
+  useEffect(() => {
+    fetch("http://localhost:8000/api/categories")
+      .then(r => r.json())
+      .then(data => setNavCategories((data.categories || data || []).slice(0, 4)))
+      .catch(() => {});
+  }, []);
+
   const cartCount = Array.isArray(cart) ? cart.reduce((t, item) => t + item.quantity, 0) : 0;
 
   const handleSearch = (e) => {
@@ -47,8 +56,15 @@ const Navbar = () => {
                <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
                   <Link to="/" className="hover:text-green-700 transition-colors">Home</Link>
                   <Link to="/products" className="hover:text-green-700 transition-colors">Shop</Link>
-                  <Link to="/products?category=immunity" className="hover:text-green-700 transition-colors">Immunity</Link>
-                  <Link to="/products?category=skincare" className="hover:text-green-700 transition-colors">Skincare</Link>
+                  {navCategories.map(cat => (
+                    <Link
+                      key={cat._id}
+                      to={`/products?category=${cat._id}`}
+                      className="hover:text-green-700 transition-colors capitalize"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
                </nav>
                
                <form onSubmit={handleSearch} className="relative w-full max-w-sm">
@@ -123,8 +139,16 @@ const Navbar = () => {
                  <Link to="/" className="text-lg font-medium text-slate-800 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>Home</Link>
                  <Link to="/products" className="text-lg font-medium text-slate-800 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>All Products</Link>
                  <hr className="border-slate-100" />
-                 <Link to="/products?category=immunity" className="font-medium text-slate-600 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>Immunity</Link>
-                 <Link to="/products?category=skincare" className="font-medium text-slate-600 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>Skincare</Link>
+                 {navCategories.map(cat => (
+                   <Link
+                     key={cat._id}
+                     to={`/products?category=${cat._id}`}
+                     className="font-medium text-slate-600 hover:text-green-700 capitalize"
+                     onClick={() => setIsMenuOpen(false)}
+                   >
+                     {cat.name}
+                   </Link>
+                 ))}
               </nav>
 
               <div className="mt-auto">

@@ -10,6 +10,8 @@ import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
+import OrderDetail from "./pages/OrderDetail";
+import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -31,6 +33,8 @@ function App() {
           <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/orders" element={<RequireAuth><Orders /></RequireAuth>} />
+          <Route path="/orders/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
