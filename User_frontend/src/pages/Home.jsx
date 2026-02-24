@@ -19,20 +19,20 @@ const Home = () => {
   const fetchHomeData = async () => {
     try {
       setLoading(true);
-      
+      const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+
       // Fetch categories (public - no auth needed)
-      // Using axios directly to skip auth interceptor
-      const categoriesRes = await fetch("http://localhost:8000/api/categories");
+      const categoriesRes = await fetch(`${base}/api/categories`);
       const categoriesData = await categoriesRes.json();
       setCategories((categoriesData?.categories || categoriesData || []).slice(0, 4));
 
       // Fetch subcategories (public - no auth needed)
-      const subcategoriesRes = await fetch("http://localhost:8000/api/subcategories");
+      const subcategoriesRes = await fetch(`${base}/api/subcategories`);
       const subcategoriesData = await subcategoriesRes.json();
       setSubcategories((subcategoriesData?.subcategories || subcategoriesData || []).slice(0, 4));
 
       // Fetch featured/new launch products (public - no auth needed)
-      const productsRes = await fetch("http://localhost:8000/api/products?limit=8");
+      const productsRes = await fetch(`${base}/api/products?limit=8`);
       const productsData = await productsRes.json();
       const allProducts = productsData?.products || productsData || [];
       setFeaturedProducts(allProducts.filter(p => p.is_new_launch).slice(0, 4));

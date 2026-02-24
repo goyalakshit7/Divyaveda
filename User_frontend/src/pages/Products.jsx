@@ -22,7 +22,8 @@ const Products = () => {
     // Fetch categories for sidebar (public - no auth needed)
     const fetchCategories = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/categories");
+        const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+        const res = await fetch(`${base}/api/categories`);
         const data = await res.json();
         setCategories(data.categories || data || []);
       } catch (err) {

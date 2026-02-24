@@ -16,7 +16,8 @@ const Navbar = () => {
 
   // Fetch top-level categories for nav links
   useEffect(() => {
-    fetch("http://localhost:8000/api/categories")
+    const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+    fetch(`${base}/api/categories`)
       .then(r => r.json())
       .then(data => setNavCategories((data.categories || data || []).slice(0, 4)))
       .catch(() => {});
