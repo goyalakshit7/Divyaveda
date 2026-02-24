@@ -108,17 +108,19 @@ const userDist = path.join(__dirname, "../User_frontend/dist");
 // Serve admin frontend at /admin (built with base='/admin')
 if (fs.existsSync(adminDist)) {
   app.use("/admin", express.static(adminDist));
-  app.get("/admin", (req, res) => res.sendFile(path.join(adminDist, "index.html")));
-  app.get("/admin/*", (req, res) => res.sendFile(path.join(adminDist, "index.html")));
+  // app.use avoids path-to-regexp wildcard issue in Express 5
+  app.use("/admin", (req, res) => res.sendFile(path.join(adminDist, "index.html")));
   console.log("✅ Admin frontend served at /admin");
 }
 
 // Serve user frontend at / (everything not /api or /admin)
 if (fs.existsSync(userDist)) {
   app.use(express.static(userDist));
-  app.get("*", (req, res) => {
+  app.use((req, res, next) => {
     if (!req.path.startsWith("/api") && !req.path.startsWith("/admin")) {
       res.sendFile(path.join(userDist, "index.html"));
+    } else {
+      next();
     }
   });
   console.log("✅ User frontend served at /");
