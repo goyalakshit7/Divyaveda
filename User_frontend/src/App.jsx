@@ -15,6 +15,14 @@ import NotFound from "./pages/NotFound";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
+// Redirects /admin to wherever the admin panel is hosted
+const AdminRedirect = () => {
+  const adminUrl = import.meta.env.VITE_ADMIN_URL || "http://localhost:8000/admin";
+  window.location.replace(adminUrl);
+  return null;
+};
+
+
 function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -34,7 +42,9 @@ function App() {
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/orders" element={<RequireAuth><Orders /></RequireAuth>} />
           <Route path="/orders/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
+          <Route path="/admin" element={<AdminRedirect />} />
           <Route path="*" element={<NotFound />} />
+
         </Routes>
       </main>
       <Footer />

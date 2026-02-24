@@ -45,10 +45,11 @@ const app = express();//making instance of express
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",  // Proxy server
+      "http://localhost:3000",
       "http://localhost:5173",
-      "http://localhost:5174", // Admin frontend direct
-      "http://localhost:5175",  // User frontend direct
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "https://divyaveda-1.onrender.com",    // User frontend (Render)
       "https://divyaveda.in",
       "https://www.divyaveda.in"
     ],
