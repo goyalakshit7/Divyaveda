@@ -2,7 +2,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  baseURL: import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" ? "http://localhost:8000/api" : "/api"),
   headers: { "Content-Type": "application/json" },
   timeout: 15000, // 15 second timeout
 });
