@@ -98,6 +98,12 @@ app.use("/api/admin/user-role-assignments", userRoleAssignmentRoutes);
 
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);  // Admin order management
+
+// Root health check — shown when accessing backend URL directly
+app.get("/", (req, res) => {
+  res.json({ message: "Divyaveda API is running", status: "OK" });
+});
+
 // ──────────────────────────────────────────────────
 // STATIC FRONTEND SERVING (Production only)
 // These blocks only activate when dist/ folders exist
