@@ -99,10 +99,7 @@ app.use("/api/admin/user-role-assignments", userRoleAssignmentRoutes);
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);  // Admin order management
 
-// Root health check — shown when accessing backend URL directly
-app.get("/", (req, res) => {
-  res.json({ message: "Divyaveda API is running", status: "OK" });
-});
+// Note: root "/" is handled by the static user frontend below (if built)
 
 // ──────────────────────────────────────────────────
 // STATIC FRONTEND SERVING (Production only)

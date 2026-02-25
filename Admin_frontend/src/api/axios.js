@@ -29,7 +29,7 @@ api.interceptors.response.use(
     // 401: Unauthorized -> Force Logout
     if (status === 401) {
       localStorage.removeItem("adminToken");
-      window.location.href = "/login";
+      window.location.href = "/admin/login";
     }
 
     // 403: Forbidden -> Stay on page (Optional: Show Alert)
