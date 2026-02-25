@@ -31,50 +31,52 @@ import Orders from "./pages/Orders";
 
 import "./App.css";
 
-/* Launcher shown at localhost:5174/ — lets you choose store or admin */
-const Launcher = () => (
-  <div style={{
-    minHeight: "100vh", display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center",
-    background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-    fontFamily: "system-ui, sans-serif", gap: "2rem"
-  }}>
-    <div style={{ textAlign: "center", color: "#fff" }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: 800, margin: 0 }}>
-        Divya<span style={{ color: "#4ade80" }}>veda</span>
-      </h1>
-      <p style={{ color: "#94a3b8", marginTop: "0.5rem", fontSize: "1rem" }}>
-        Select where you want to go
-      </p>
+/* Launcher shown at root — lets you choose store or admin */
+const Launcher = () => {
+  const storeUrl = import.meta.env.VITE_USER_URL || "http://localhost:5173/";
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+      fontFamily: "system-ui, sans-serif", gap: "2rem"
+    }}>
+      <div style={{ textAlign: "center", color: "#fff" }}>
+        <h1 style={{ fontSize: "2.5rem", fontWeight: 800, margin: 0 }}>
+          Divya<span style={{ color: "#4ade80" }}>veda</span>
+        </h1>
+        <p style={{ color: "#94a3b8", marginTop: "0.5rem", fontSize: "1rem" }}>
+          Select where you want to go
+        </p>
+      </div>
+      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+        <a
+          href={storeUrl}
+          style={{
+            padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
+            fontWeight: 600, cursor: "pointer", textDecoration: "none",
+            background: "#16a34a", color: "#fff", border: "none",
+            boxShadow: "0 4px 24px rgba(22,163,74,0.35)"
+          }}
+        >
+          🌿 Visit Store
+        </a>
+        <a
+          href="/admin/login"
+          style={{
+            padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
+            fontWeight: 600, cursor: "pointer", textDecoration: "none",
+            background: "#1e40af", color: "#fff", border: "none",
+            boxShadow: "0 4px 24px rgba(30,64,175,0.35)"
+          }}
+        >
+          ⚙️ Admin Panel
+        </a>
+      </div>
     </div>
-    <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-      <a
-        href="http://localhost:5173/"
-        style={{
-          padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
-          fontWeight: 600, cursor: "pointer", textDecoration: "none",
-          background: "#16a34a", color: "#fff", border: "none",
-          boxShadow: "0 4px 24px rgba(22,163,74,0.35)",
-          transition: "transform 0.15s"
-        }}
-      >
-        🌿 Visit Store
-      </a>
-      <a
-        href="/admin"
-        style={{
-          padding: "1rem 2.5rem", borderRadius: "12px", fontSize: "1rem",
-          fontWeight: 600, cursor: "pointer", textDecoration: "none",
-          background: "#1e40af", color: "#fff", border: "none",
-          boxShadow: "0 4px 24px rgba(30,64,175,0.35)",
-          transition: "transform 0.15s"
-        }}
-      >
-        ⚙️ Admin Panel
-      </a>
-    </div>
-  </div>
-);
+  );
+};
+
 
 /* =========================
    SHELL LAYOUT
