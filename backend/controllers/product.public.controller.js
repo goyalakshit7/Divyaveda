@@ -44,7 +44,11 @@ export const getAllProducts = async (req, res) => {
     }
 
     if (search) {
-      query.name = { $regex: search, $options: "i" };
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
     }
 
     if (minPrice || maxPrice) {

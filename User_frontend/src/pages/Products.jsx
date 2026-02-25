@@ -76,14 +76,14 @@ const Products = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-baseline justify-between border-b border-slate-200 pb-6">
-        <h1 className="text-3xl font-serif font-bold text-slate-900">
-           {search ? `Search results for "${search}"` : "All Products"}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-6">
+        <h1 className="text-xl sm:text-3xl font-serif font-bold text-slate-900 leading-tight">
+           {search ? `Results for "${search}"` : "All Products"}
         </h1>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 ml-auto">
            <select 
-             className="block rounded-md border-0 py-1.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-green-600 sm:text-sm sm:leading-6"
+             className="block rounded-full border border-slate-200 py-2 pl-3 pr-8 text-slate-900 text-xs sm:text-sm focus:ring-2 focus:ring-green-600 bg-white"
              value={sort}
              onChange={(e) => updateFilter("sort", e.target.value)}
            >
@@ -92,10 +92,10 @@ const Products = () => {
              <option value="price_desc">Price: High to Low</option>
            </select>
            <button 
-             className="lg:hidden p-2 text-slate-500 hover:text-slate-700"
+             className="lg:hidden p-2 text-slate-500 hover:text-slate-700 bg-slate-100 rounded-full"
              onClick={() => setShowFilters(!showFilters)}
            >
-             <Filter className="h-5 w-5" />
+             <Filter className="h-4 w-4" />
            </button>
         </div>
       </div>

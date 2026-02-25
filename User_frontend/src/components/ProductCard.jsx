@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
-  const { user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
   
   const image = product.main_image || product.productImages?.[0] || "https://placehold.co/400x400?text=No+Image";
@@ -14,14 +12,8 @@ const ProductCard = ({ product }) => {
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!user) {
-      // Could show a toast or redirect to login
-      return;
-    }
-    
     setIsAdding(true);
-    await addToCart(product._id, 1);
+    await addToCart(product._id, 1, product);
     setIsAdding(false);
   };
 
@@ -52,8 +44,8 @@ const ProductCard = ({ product }) => {
           />
         </Link>
 
-        {/* Quick add button - only show if in stock and user is logged in */}
-        {!isOutOfStock && user && (
+        {/* Quick add button — visible for all users if in stock */}
+        {!isOutOfStock && (
           <button
             onClick={handleQuickAdd}
             disabled={isAdding}

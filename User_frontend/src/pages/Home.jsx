@@ -1,371 +1,529 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import ProductCard from "../components/ProductCard";
 import Button from "../components/Button";
-import { ChevronRight, Star, Shield, Truck, Award } from "lucide-react";
+import {
+  ChevronRight, ChevronLeft, Shield, Truck, Award, Star,
+  Leaf, Heart, Sparkles, ArrowRight
+} from "lucide-react";
 
-const Home = () => {
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
+/* ── Hero slides ─────────────────────────────────────────── */
+const SLIDES = [
+  {
+    id: 1,
+    badge: "🌿 100% Natural",
+    title: "Ancient Wisdom,",
+    titleAccent: "Modern Wellness",
+    sub: "Discover the healing power of authentic Ayurvedic herbs, crafted for today's lifestyle.",
+    cta: "Shop Now",
+    ctaLink: "/products",
+    bg: "from-[#0a2e1a] via-[#0d3b22] to-[#0a2e1a]",
+    accentColor: "#4ade80",
+    image: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=800&q=80",
+  },
+  {
+    id: 2,
+    badge: "⭐ Best Sellers",
+    title: "Nature's Finest",
+    titleAccent: "Herbal Remedies",
+    sub: "Thousands of happy customers trust Divyaveda for their daily wellness routine.",
+    cta: "Explore Products",
+    ctaLink: "/products",
+    bg: "from-[#1a1a2e] via-[#16213e] to-[#0f3460]",
+    accentColor: "#818cf8",
+    image: "https://images.unsplash.com/photo-1609358905581-e5381612486e?w=800&q=80",
+  },
+  {
+    id: 3,
+    badge: "🎉 New Launches",
+    title: "Fresh Arrivals",
+    titleAccent: "Hand-Curated",
+    sub: "Explore our latest collection of premium Ayurvedic products, freshly sourced and certified.",
+    cta: "View New Arrivals",
+    ctaLink: "/products",
+    bg: "from-[#2d1b00] via-[#3d2600] to-[#4a2f00]",
+    accentColor: "#fbbf24",
+    image: "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=800&q=80",
+  },
+];
 
+/* ── Trust badges ─────────────────────────────────────────── */
+const TRUST = [
+  { icon: Shield,   text: "100% Authentic" },
+  { icon: Truck,    text: "Free Shipping ₹500+" },
+  { icon: Award,    text: "Certified Quality" },
+  { icon: Star,     text: "10,000+ Customers" },
+  { icon: Leaf,     text: "Natural Ingredients" },
+  { icon: Heart,    text: "Made with Love" },
+  { icon: Sparkles, text: "Premium Grade" },
+  { icon: Shield,   text: "100% Authentic" },
+  { icon: Truck,    text: "Free Shipping ₹500+" },
+  { icon: Award,    text: "Certified Quality" },
+  { icon: Star,     text: "10,000+ Customers" },
+  { icon: Leaf,     text: "Natural Ingredients" },
+  { icon: Heart,    text: "Made with Love" },
+  { icon: Sparkles, text: "Premium Grade" },
+];
+
+/* ── Category icon emojis ─────────────────────────────────── */
+const CAT_COLORS = [
+  { from: "#134e1b", to: "#1a7a2e", accent: "#4ade80" },
+  { from: "#1e1b4b", to: "#312e81", accent: "#818cf8" },
+  { from: "#7c2d12", to: "#9a3412", accent: "#fb923c" },
+  { from: "#064e3b", to: "#065f46", accent: "#34d399" },
+];
+const CAT_EMOJI = ["🌿", "🍃", "🌸", "🌱"];
+
+/* ════════════════════════════════════════════════════════════ */
+
+export default function Home() {
+  const [categories, setCategories]       = useState([]);
+  const [featuredProducts, setFeatured]   = useState([]);
+  const [bestSellers, setBestSellers]     = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [slide, setSlide]                 = useState(0);
+  const [sliding, setSliding]             = useState(false);
+  const navigate = useNavigate();
+
+  /* ── data ───────────────────────────────────────────────── */
   useEffect(() => {
-    fetchHomeData();
+    const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+    const load = async () => {
+      try {
+        const [catRes, prodRes] = await Promise.all([
+          fetch(`${base}/api/categories`),
+          fetch(`${base}/api/products?limit=12`),
+        ]);
+        const catData  = await catRes.json();
+        const prodData = await prodRes.json();
+        setCategories((catData.categories || catData || []).slice(0, 6));
+        const all = prodData.products || prodData || [];
+        setFeatured(all.filter(p => p.is_new_launch).slice(0, 8));
+        setBestSellers(all.slice(0, 8));
+      } catch (e) {
+        console.error("Home data error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  const fetchHomeData = async () => {
-    try {
-      setLoading(true);
-      const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+  /* ── carousel auto-advance ──────────────────────────────── */
+  const goToSlide = useCallback((next) => {
+    if (sliding) return;
+    setSliding(true);
+    setSlide(next);
+    setTimeout(() => setSliding(false), 600);
+  }, [sliding]);
 
-      // Fetch categories (public - no auth needed)
-      const categoriesRes = await fetch(`${base}/api/categories`);
-      const categoriesData = await categoriesRes.json();
-      setCategories((categoriesData?.categories || categoriesData || []).slice(0, 4));
+  useEffect(() => {
+    const t = setInterval(() => goToSlide((slide + 1) % SLIDES.length), 5000);
+    return () => clearInterval(t);
+  }, [slide, goToSlide]);
 
-      // Fetch subcategories (public - no auth needed)
-      const subcategoriesRes = await fetch(`${base}/api/subcategories`);
-      const subcategoriesData = await subcategoriesRes.json();
-      setSubcategories((subcategoriesData?.subcategories || subcategoriesData || []).slice(0, 4));
-
-      // Fetch featured/new launch products (public - no auth needed)
-      const productsRes = await fetch(`${base}/api/products?limit=8`);
-      const productsData = await productsRes.json();
-      const allProducts = productsData?.products || productsData || [];
-      setFeaturedProducts(allProducts.filter(p => p.is_new_launch).slice(0, 4));
-      setBestSellers(allProducts.slice(0, 4));
-      
-    } catch (error) {
-      console.error("Error fetching home data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0a2e1a]">
+      <div className="text-center space-y-4">
+        <div className="h-14 w-14 mx-auto animate-spin rounded-full border-4 border-green-400 border-t-transparent" />
+        <p className="text-green-300 text-sm font-medium tracking-widest uppercase">Loading...</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const cur = SLIDES[slide];
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-white">
-      {/* Hero Banner */}
-      <section className="relative bg-gradient-to-r from-green-900 via-emerald-800 to-green-900 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1200')] opacity-20 bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-r from-green-900/95 to-emerald-900/95" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-          <div className="max-w-3xl">
-            <div className="inline-block px-4 py-2 bg-yellow-500 text-green-900 font-bold rounded-full mb-6 animate-pulse">
-              🎉 UP TO 80% OFF
-            </div>
-            <h1 className="text-4xl md:text-6xl font-serif font-bold mb-6 leading-tight">
-              Discover Traditional  
-              <span className="block text-yellow-400">Ayurvedic Wellness</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-green-50 mb-8">
-              Pure, Natural & Effective Herbal Products
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/products">
-                <Button className="bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold px-8 py-4 text-lg rounded-full shadow-2xl">
-                  Shop Now
-                </Button>
-              </Link>
-              <Link to="/products">
-                <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-green-900 px-8 py-4 text-lg rounded-full">
-                  Explore Products
-                </Button>
-              </Link>
+    <div className="bg-white overflow-x-hidden">
+
+      {/* ══════════════ HERO CAROUSEL ══════════════ */}
+      <section className="relative h-[88vh] min-h-[580px] overflow-hidden">
+        {SLIDES.map((s, i) => (
+          <div
+            key={s.id}
+            className="absolute inset-0 transition-opacity duration-700"
+            style={{ opacity: i === slide ? 1 : 0, zIndex: i === slide ? 1 : 0 }}
+          >
+            {/* BG image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center scale-105 transition-transform duration-[8000ms]"
+              style={{ backgroundImage: `url('${s.image}')`, transform: i === slide ? "scale(1.05)" : "scale(1)" }}
+            />
+            {/* gradient overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${s.bg} opacity-90`} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          </div>
+        ))}
+
+        {/* Content */}
+        <div className="relative z-10 h-full flex items-center">
+          <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full">
+            <div className="max-w-2xl">
+              {/* Badge */}
+              <div
+                key={`badge-${slide}`}
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6 backdrop-blur-sm
+                           animate-[fadeInUp_0.5s_ease_forwards]"
+                style={{ background: `${cur.accentColor}22`, border: `1px solid ${cur.accentColor}66`, color: cur.accentColor }}
+              >
+                {cur.badge}
+              </div>
+
+              {/* Title */}
+              <h1
+                key={`h1-${slide}`}
+                className="text-4xl sm:text-5xl md:text-7xl font-serif font-black text-white mb-3 leading-[1.1]
+                           animate-[fadeInUp_0.6s_0.1s_ease_forwards] opacity-0"
+                style={{ animationFillMode: "forwards" }}
+              >
+                {cur.title}
+                <br />
+                <span style={{ color: cur.accentColor }}>{cur.titleAccent}</span>
+              </h1>
+
+              {/* Subtitle */}
+              <p
+                key={`sub-${slide}`}
+                className="text-base sm:text-lg md:text-xl text-white/75 mb-8 sm:mb-10 max-w-lg leading-relaxed
+                           animate-[fadeInUp_0.6s_0.2s_ease_forwards] opacity-0"
+                style={{ animationFillMode: "forwards" }}
+              >
+                {cur.sub}
+              </p>
+
+              {/* CTAs */}
+              <div
+                key={`cta-${slide}`}
+                className="flex flex-wrap gap-4 animate-[fadeInUp_0.6s_0.3s_ease_forwards] opacity-0"
+                style={{ animationFillMode: "forwards" }}
+              >
+                <Link to={cur.ctaLink}>
+                  <button
+                    className="flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                    style={{ background: cur.accentColor, color: "#0a1a0a" }}
+                  >
+                    {cur.cta} <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+                <Link to="/products">
+                  <button className="flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base text-white border-2 border-white/30 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+                    Browse All
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Trust Badges */}
-        <div className="relative bg-white/10 backdrop-blur-sm border-t border-white/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="flex items-center gap-3 text-white">
-                <Shield className="h-8 w-8 text-yellow-400" />
-                <div>
-                  <p className="font-bold">100% Authentic</p>
-                  <p className="text-sm text-green-100">Genuine Products</p>
-                </div>
+        {/* Arrows */}
+        <button
+          onClick={() => goToSlide((slide - 1 + SLIDES.length) % SLIDES.length)}
+          className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => goToSlide((slide + 1) % SLIDES.length)}
+          className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
+        {/* Dots */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goToSlide(i)}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{
+                width: i === slide ? "2rem" : "0.5rem",
+                background: i === slide ? cur.accentColor : "rgba(255,255,255,0.35)",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 right-8 z-20 flex flex-col items-center gap-1 opacity-50">
+          <div className="h-8 w-[1px] bg-white/50 animate-pulse" />
+          <span className="text-white/60 text-[10px] tracking-widest uppercase rotate-90 origin-center mt-4">Scroll</span>
+        </div>
+      </section>
+
+      {/* ══════════════ TRUST BADGE MARQUEE ══════════════ */}
+      <div className="bg-gradient-to-r from-green-900 to-emerald-800 py-4 overflow-hidden">
+        <div
+          className="flex gap-12 whitespace-nowrap"
+          style={{ animation: "marquee 28s linear infinite" }}
+        >
+          {TRUST.map((t, i) => (
+            <div key={i} className="flex items-center gap-2 text-white/90 shrink-0">
+              <t.icon className="h-4 w-4 text-green-300" />
+              <span className="text-sm font-semibold tracking-wide">{t.text}</span>
+              <span className="ml-6 text-green-600">•</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══════════════ CATEGORIES ══════════════ */}
+      {categories.length > 0 && (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Collections</p>
+                <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900 leading-tight">
+                  Shop by<br /><span className="text-green-700">Category</span>
+                </h2>
               </div>
-              <div className="flex items-center gap-3 text-white">
-                <Truck className="h-8 w-8 text-yellow-400" />
-                <div>
-                  <p className="font-bold">Free Shipping</p>
-                  <p className="text-sm text-green-100">On orders ₹500+</p>
-                </div>
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+                View All <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {categories.map((cat, i) => {
+                const col = CAT_COLORS[i % CAT_COLORS.length];
+                const em  = CAT_EMOJI[i % CAT_EMOJI.length];
+                return (
+                  <Link
+                    key={cat._id}
+                    to={`/products?category=${cat._id}`}
+                    className="group relative"
+                  >
+                    <div
+                      className="aspect-[4/5] rounded-3xl flex flex-col items-center justify-end p-5 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+                      style={{ background: `linear-gradient(135deg, ${col.from}, ${col.to})` }}
+                    >
+                      {/* Glow circle */}
+                      <div
+                        className="absolute top-5 left-1/2 -translate-x-1/2 h-16 w-16 rounded-full opacity-20 blur-xl transition-all duration-500 group-hover:opacity-40 group-hover:scale-150"
+                        style={{ background: col.accent }}
+                      />
+                      {/* Emoji */}
+                      <span className="relative text-4xl mb-4 transition-transform duration-500 group-hover:scale-125">
+                        {em}
+                      </span>
+                      {/* Name */}
+                      <h3 className="relative text-white font-bold text-center capitalize text-sm leading-tight">
+                        {cat.name}
+                      </h3>
+                      {/* arrow on hover */}
+                      <div
+                        className="absolute top-3 right-3 h-7 w-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100"
+                        style={{ background: col.accent }}
+                      >
+                        <ArrowRight className="h-3 w-3 text-black" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══════════════ NEW LAUNCHES — AUTO SCROLL CAROUSEL ══════════════ */}
+      {featuredProducts.length > 0 && (
+        <section className="py-20 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-10">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Just Arrived</p>
+                <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
+                  New <span className="text-green-700">Launches</span>
+                </h2>
               </div>
-              <div className="flex items-center gap-3 text-white">
-                <Award className="h-8 w-8 text-yellow-400" />
-                <div>
-                  <p className="font-bold">Premium Quality</p>
-                  <p className="text-sm text-green-100">Certified Products</p>
-                </div>
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+                Shop All <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Horizontal scroll strip */}
+          <div className="flex gap-6 px-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4"
+               style={{ scrollbarWidth: "none" }}>
+            {featuredProducts.map(product => (
+              <div key={product._id} className="shrink-0 w-64 snap-start">
+                <ProductCard product={product} />
               </div>
-              <div className="flex items-center gap-3 text-white">
-                <Star className="h-8 w-8 text-yellow-400" />
-                <div>
-                  <p className="font-bold">3000+ Styles</p>
-                  <p className="text-sm text-green-100">Wide Selection</p>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ══════════════ PROMO BANNER ══════════════ */}
+      <section className="py-20 relative overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0a7c56 70%, #064e3b 100%)",
+          }}
+        />
+        {/* Decorative circles */}
+        <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full bg-green-400/10 blur-3xl" />
+        <div className="absolute -bottom-20 -right-20 h-80 w-80 rounded-full bg-emerald-300/10 blur-3xl" />
+        <div className="absolute top-0 right-0 h-full w-1/3">
+          <div className="h-full w-full opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, #4ade80 0%, transparent 60%)" }} />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="inline-block px-5 py-2 rounded-full bg-green-400/20 text-green-300 text-sm font-bold border border-green-400/30 mb-6">
+                💝 Limited Time Offer
+              </span>
+              <h2 className="text-4xl md:text-6xl font-serif font-black text-white mb-6 leading-tight">
+                Ayurvedic Gold<br />
+                <span className="text-green-300">Collection</span>
+              </h2>
+              <p className="text-xl text-white/70 mb-8">
+                Premium herbal formulations starting at <span className="text-green-300 font-bold">₹299</span>. Limited stock available.
+              </p>
+              <Link to="/products">
+                <button className="flex items-center gap-3 px-10 py-5 bg-green-400 hover:bg-green-300 text-green-950 font-black rounded-full text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(74,222,128,0.4)]">
+                  SHOP THE COLLECTION <ArrowRight className="h-5 w-5" />
+                </button>
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { n: "10K+", label: "Happy Customers", icon: "😊" },
+                { n: "500+", label: "Products", icon: "🌿" },
+                { n: "100%", label: "Natural", icon: "✅" },
+                { n: "5 ★",  label: "Avg Rating", icon: "⭐" },
+              ].map((s, i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-3xl backdrop-blur-sm border border-white/10 hover:border-green-400/30 transition-all duration-300 hover:-translate-y-1"
+                  style={{ background: "rgba(255,255,255,0.05)" }}
+                >
+                  <div className="text-3xl mb-2">{s.icon}</div>
+                  <div className="text-3xl font-black text-white mb-1">{s.n}</div>
+                  <div className="text-white/50 text-sm">{s.label}</div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Top Categories */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-3">
-              TOP CATEGORIES
-            </h2>
-            <p className="text-slate-600">Explore our curated collection of wellness products</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <Link
-                key={category._id}
-                to={`/products?category=${category._id}`}
-                className="group relative"
-              >
-                <div className="aspect-[3/4] rounded-3xl overflow-hidden bg-gradient-to-br from-yellow-100 to-yellow-200 border-4 border-yellow-400 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
-                    <h3 className="text-xl md:text-2xl font-bold text-white uppercase tracking-wide">
-                      {category.name}
-                    </h3>
-                  </div>
-                  <div className="absolute top-4 right-4 bg-yellow-400 text-green-900 px-3 py-1 rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                    VIEW ALL
-                  </div>
-                </div>
+      {/* ══════════════ BEST SELLERS ══════════════ */}
+      {bestSellers.length > 0 && (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">⭐ Customer Favorites</p>
+                <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
+                  Best <span className="text-green-700">Sellers</span>
+                </h2>
+              </div>
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+                View All <ChevronRight className="h-4 w-4" />
               </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              {bestSellers.slice(0, 8).map(product => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link to="/products">
+                <button className="inline-flex items-center gap-3 px-12 py-4 bg-slate-900 hover:bg-green-700 text-white font-bold rounded-full text-base transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  View All Products <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══════════════ WHY DIVYAVEDA ══════════════ */}
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Our Promise</p>
+            <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
+              Why Choose <span className="text-green-700">Divyaveda?</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { Icon: Shield,   col: "#064e3b", light: "#d1fae5", title: "100% Authentic",   desc: "All products certified and sourced from trusted Ayurvedic manufacturers." },
+              { Icon: Truck,    col: "#1e3a5f", light: "#dbeafe", title: "Fast Delivery",    desc: "Free shipping on orders above ₹500. Delivered in 3–5 business days." },
+              { Icon: Sparkles, col: "#713f12", light: "#fef3c7", title: "Premium Quality",  desc: "Rigorous quality checks on every product before it reaches you." },
+              { Icon: Heart,    col: "#4a044e", light: "#fae8ff", title: "Made with Love",   desc: "Ancient Ayurvedic wisdom meets modern science in every product." },
+            ].map(({ Icon, col, light, title, desc }, i) => (
+              <div
+                key={i}
+                className="p-8 rounded-3xl bg-white border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+              >
+                <div
+                  className="h-14 w-14 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: light }}
+                >
+                  <Icon className="h-7 w-7" style={{ color: col }} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Subcategories Section */}
-      {subcategories.length > 0 && (
-        <section className="py-16 bg-gradient-to-b from-green-50 to-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-3">
-                SHOP BY OCCASION
-              </h2>
-              <p className="text-slate-600">Find the perfect products for every celebration</p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {subcategories.map((subcategory) => (
-                <Link
-                  key={subcategory._id}
-                  to={`/products?subcategory=${subcategory._id}`}
-                  className="group relative"
-                >
-                  <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-900/90 to-emerald-800/90 group-hover:from-green-800/90 group-hover:to-emerald-700/90 transition-all duration-300" />
-                    <div className="relative h-full flex items-center justify-center p-6">
-                      <div className="text-center">
-                        <div className="inline-block p-4 bg-yellow-500 rounded-full mb-4">
-                          <span className="text-3xl">✨</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-white uppercase">
-                          {subcategory.name}
-                        </h3>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Featured Products - New Launches */}
-      {featuredProducts.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-2">
-                  TRENDING NOW
-                </h2>
-                <p className="text-slate-600">Discover our latest arrivals</p>
-              </div>
-              <Link to="/products?new=true">
-                <Button variant="outline" className="border-green-700 text-green-700 hover:bg-green-700 hover:text-white">
-                  View All <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Secondary Banner */}
-      <section className="py-16 bg-gradient-to-r from-emerald-900 via-green-800 to-emerald-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 rounded-3xl p-8 md:p-16 text-center backdrop-blur-sm border-2 border-yellow-400">
-            <div className="max-w-3xl mx-auto">
-              <div className="inline-block px-6 py-2 bg-yellow-500 text-green-900 font-bold rounded-full mb-6 text-lg">
-                💝 SPECIAL OFFER
-              </div>
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">
-                Ayurvedic Gold Collection
-              </h2>
-              <p className="text-xl text-green-50 mb-8">
-                Starting at ₹599/- • Premium Quality • Limited Stock
-              </p>
-              <Link to="/products">
-                <Button className="bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold px-10 py-4 text-lg rounded-full shadow-2xl">
-                  SHOP NOW
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Best Sellers */}
-      {bestSellers.length > 0 && (
-        <section className="py-16 bg-gradient-to-b from-slate-50 to-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <div className="inline-block px-4 py-2 bg-yellow-100 text-yellow-800 font-bold rounded-full mb-4">
-                ⭐ CUSTOMER FAVORITES
-              </div>
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-3">
-                BEST SELLERS
-              </h2>
-              <p className="text-slate-600">Most loved products by our customers</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {bestSellers.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-
-            <div className="text-center">
-              <Link to="/products">
-                <Button className="bg-green-700 hover:bg-green-800 text-white px-12 py-4 text-lg rounded-full shadow-xl">
-                  VIEW ALL PRODUCTS
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* About Us Section */}
-      <section className="py-20 bg-gradient-to-br from-green-50 via-emerald-50 to-green-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="inline-block px-4 py-2 bg-green-100 text-green-800 font-bold rounded-full mb-6">
-                About Divyaveda
-              </div>
-              <h2 className="text-3xl md:text-5xl font-serif font-bold text-slate-900 mb-6">
-                Your Trusted Partner in
-                <span className="block text-green-700">Ayurvedic Wellness</span>
-              </h2>
-              <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-                At Divyaveda, we bring you the finest collection of authentic Ayurvedic products, carefully crafted using ancient wisdom and modern science. Our mission is to make traditional wellness accessible to everyone.
-              </p>
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Shield className="h-6 w-6 text-green-700" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-1">100% Authentic Products</h4>
-                    <p className="text-slate-600">All our products are certified and sourced from trusted manufacturers</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Award className="h-6 w-6 text-green-700" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-1">Premium Quality Standards</h4>
-                    <p className="text-slate-600">Every product undergoes strict quality checks before delivery</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Star className="h-6 w-6 text-green-700" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-1">10,000+ Happy Customers</h4>
-                    <p className="text-slate-600">Join thousands who trust us for their wellness journey</p>
-                  </div>
-                </div>
-              </div>
-              <Link to="/about">
-                <Button className="bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-full">
-                  Learn More About Us
-                </Button>
-              </Link>
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-400 rounded-3xl transform rotate-3" />
-                <img
-                  src="https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=600&h=700&fit=crop"
-                  alt="Ayurvedic Products"
-                  className="relative rounded-3xl shadow-2xl w-full h-[500px] object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <section className="py-16 bg-gradient-to-r from-green-900 via-emerald-800 to-green-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
+      {/* ══════════════ NEWSLETTER ══════════════ */}
+      <section className="py-24 relative overflow-hidden bg-gradient-to-br from-green-950 to-emerald-900">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, #4ade80 0%, transparent 50%), radial-gradient(circle at 80% 20%, #34d399 0%, transparent 50%)" }} />
+        <div className="relative max-w-2xl mx-auto px-6 text-center">
+          <Leaf className="h-10 w-10 text-green-400 mx-auto mb-6 opacity-80" />
+          <h2 className="text-4xl md:text-5xl font-serif font-black text-white mb-4">
             Start Your Wellness Journey
           </h2>
-          <p className="text-green-50 text-lg mb-8">
-            Subscribe to get special offers, free giveaways, and exclusive deals
+          <p className="text-white/60 text-lg mb-10">
+            Get exclusive offers, wellness tips, and new product alerts — straight to your inbox.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <form
+            onSubmit={e => e.preventDefault()}
+            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          >
             <input
               type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-6 py-4 rounded-full focus:outline-none focus:ring-4 focus:ring-yellow-400"
+              placeholder="your@email.com"
+              className="flex-1 px-6 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-green-400 backdrop-blur-sm transition-all"
             />
-            <Button className="bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold px-8 py-4 rounded-full whitespace-nowrap">
+            <button
+              type="submit"
+              className="px-8 py-4 bg-green-400 hover:bg-green-300 text-green-950 font-black rounded-full whitespace-nowrap transition-all duration-300 hover:scale-105"
+            >
               Subscribe
-            </Button>
-          </div>
+            </button>
+          </form>
+          <p className="text-white/30 text-xs mt-4">No spam. Unsubscribe anytime.</p>
         </div>
       </section>
+
+      {/* CSS for marquee + fade animations */}
+      <style>{`
+        @keyframes marquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
-};
-
-export default Home;
+}

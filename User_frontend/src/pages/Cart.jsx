@@ -1,11 +1,21 @@
 import { useCart } from "../context/CartContext";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Button from "../components/Button";
 import { Trash2, Minus, Plus, ArrowRight, ShoppingBag } from "lucide-react";
 
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    if (!user) {
+      navigate("/login?redirect=/checkout");
+      return;
+    }
+    navigate("/checkout");
+  };
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => {
@@ -132,7 +142,7 @@ const Cart = () => {
                 </div>
               </div>
               
-              <Button onClick={() => navigate("/checkout")} className="w-full py-4 text-base group bg-slate-900 text-white hover:bg-slate-800">
+              <Button onClick={handleCheckout} className="w-full py-4 text-base group bg-slate-900 text-white hover:bg-slate-800">
                 Proceed to Checkout
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>

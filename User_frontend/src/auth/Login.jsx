@@ -35,8 +35,8 @@ const Login = () => {
     setLoading(false);
     
     if (success) {
-      // Redirect to the page they were trying to access, or home
-      const returnUrl = searchParams.get("returnUrl") || "/";
+      // Support both ?redirect= (new) and ?returnUrl= (legacy RequireAuth)
+      const returnUrl = searchParams.get("redirect") || searchParams.get("returnUrl") || "/";
       navigate(returnUrl);
     } else {
       setError("Invalid credentials. Please try again.");
