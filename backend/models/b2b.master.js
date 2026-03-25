@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const b2bSchema = new mongoose.Schema(
   {
+
     lead_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lead",
