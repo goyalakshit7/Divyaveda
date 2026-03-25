@@ -5,7 +5,7 @@ import ProductCard from "../components/ProductCard";
 import Button from "../components/Button";
 import {
   ChevronRight, ChevronLeft, Shield, Truck, Award, Star,
-  Leaf, Heart, Sparkles, ArrowRight
+  Leaf, Heart, Sparkles, ArrowRight, Droplets, Flower2, Sprout, Activity
 } from "lucide-react";
 
 /* ── Hero slides ─────────────────────────────────────────── */
@@ -13,14 +13,14 @@ const SLIDES = [
   {
     id: 1,
     badge: "🌿 100% Natural",
-    title: "Ancient Wisdom,",
-    titleAccent: "Modern Wellness",
+    title: "Nature's Healing Power",
+    titleAccent: "at Your Doorstep",
     sub: "Discover the healing power of authentic Ayurvedic herbs, crafted for today's lifestyle.",
     cta: "Shop Now",
     ctaLink: "/products",
     bg: "from-[#0a2e1a] via-[#0d3b22] to-[#0a2e1a]",
-    accentColor: "#4ade80",
-    image: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=800&q=80",
+    accentColor: "hsl(var(--secondary))",
+    image: "/images/hero-bg.png",
   },
   {
     id: 2,
@@ -66,14 +66,15 @@ const TRUST = [
   { icon: Sparkles, text: "Premium Grade" },
 ];
 
-/* ── Category icon emojis ─────────────────────────────────── */
-const CAT_COLORS = [
-  { from: "#134e1b", to: "#1a7a2e", accent: "#4ade80" },
-  { from: "#1e1b4b", to: "#312e81", accent: "#818cf8" },
-  { from: "#7c2d12", to: "#9a3412", accent: "#fb923c" },
-  { from: "#064e3b", to: "#065f46", accent: "#34d399" },
+/* ── Category Styles ─────────────────────────────────── */
+const CAT_STYLES = [
+  { bg: "bg-emerald-50", icon: Leaf, color: "text-emerald-600", border: "border-emerald-100", glow: "from-emerald-400/20" },
+  { bg: "bg-amber-50", icon: Sparkles, color: "text-amber-600", border: "border-amber-100", glow: "from-amber-400/20" },
+  { bg: "bg-rose-50", icon: Flower2, color: "text-rose-600", border: "border-rose-100", glow: "from-rose-400/20" },
+  { bg: "bg-blue-50", icon: Droplets, color: "text-blue-600", border: "border-blue-100", glow: "from-blue-400/20" },
+  { bg: "bg-purple-50", icon: Activity, color: "text-purple-600", border: "border-purple-100", glow: "from-purple-400/20" },
+  { bg: "bg-teal-50", icon: Sprout, color: "text-teal-600", border: "border-teal-100", glow: "from-teal-400/20" },
 ];
-const CAT_EMOJI = ["🌿", "🍃", "🌸", "🌱"];
 
 /* ════════════════════════════════════════════════════════════ */
 
@@ -274,49 +275,44 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Collections</p>
+                <p className="text-primary font-semibold text-sm tracking-widest uppercase mb-2">Collections</p>
                 <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900 leading-tight">
-                  Shop by<br /><span className="text-green-700">Category</span>
+                  Shop by<br /><span className="text-primary">Category</span>
                 </h2>
               </div>
-              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-primary font-semibold hover:gap-3 transition-all">
                 View All <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
               {categories.map((cat, i) => {
-                const col = CAT_COLORS[i % CAT_COLORS.length];
-                const em  = CAT_EMOJI[i % CAT_EMOJI.length];
+                const style = CAT_STYLES[i % CAT_STYLES.length];
+                const Icon = style.icon;
                 return (
                   <Link
                     key={cat._id}
                     to={`/products?category=${cat._id}`}
-                    className="group relative"
+                    className="group relative block w-full outline-none"
                   >
-                    <div
-                      className="aspect-[4/5] rounded-3xl flex flex-col items-center justify-end p-5 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
-                      style={{ background: `linear-gradient(135deg, ${col.from}, ${col.to})` }}
-                    >
-                      {/* Glow circle */}
-                      <div
-                        className="absolute top-5 left-1/2 -translate-x-1/2 h-16 w-16 rounded-full opacity-20 blur-xl transition-all duration-500 group-hover:opacity-40 group-hover:scale-150"
-                        style={{ background: col.accent }}
-                      />
-                      {/* Emoji */}
-                      <span className="relative text-4xl mb-4 transition-transform duration-500 group-hover:scale-125">
-                        {em}
-                      </span>
+                    <div className={`relative aspect-[4/5] rounded-3xl bg-white border ${style.border} overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] hover:border-transparent flex flex-col items-center justify-center p-6 text-center z-10`}>
+                      
+                      {/* Soft background glow on hover */}
+                      <div className={`absolute -inset-px opacity-0 group-hover:opacity-100 bg-gradient-to-b ${style.glow} to-transparent transition-opacity duration-500 -z-10`} />
+                      
+                      {/* Icon container */}
+                      <div className={`relative h-20 w-20 rounded-full ${style.bg} flex items-center justify-center mb-6 transition-transform duration-500 group-hover:scale-110 shadow-sm border ${style.border}`}>
+                         <Icon className={`h-8 w-8 ${style.color} transition-transform duration-500 group-hover:rotate-12`} strokeWidth={1.5} />
+                      </div>
+                      
                       {/* Name */}
-                      <h3 className="relative text-white font-bold text-center capitalize text-sm leading-tight">
+                      <h3 className="font-serif font-black text-slate-900 text-[15px] sm:text-base leading-snug group-hover:text-primary transition-colors">
                         {cat.name}
                       </h3>
-                      {/* arrow on hover */}
-                      <div
-                        className="absolute top-3 right-3 h-7 w-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100"
-                        style={{ background: col.accent }}
-                      >
-                        <ArrowRight className="h-3 w-3 text-black" />
+                      
+                      {/* Floating arrow */}
+                      <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center opacity-0 -translate-x-2 translate-y-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-500 text-slate-400 group-hover:text-primary">
+                        <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
                   </Link>
@@ -333,12 +329,12 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-10">
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Just Arrived</p>
+                <p className="text-primary font-semibold text-sm tracking-widest uppercase mb-2">Just Arrived</p>
                 <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
-                  New <span className="text-green-700">Launches</span>
+                  New <span className="text-primary">Launches</span>
                 </h2>
               </div>
-              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-primary font-semibold hover:gap-3 transition-all">
                 Shop All <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
@@ -420,12 +416,12 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">⭐ Customer Favorites</p>
+                <p className="text-primary font-semibold text-sm tracking-widest uppercase mb-2">⭐ Customer Favorites</p>
                 <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
-                  Best <span className="text-green-700">Sellers</span>
+                  Best <span className="text-primary">Sellers</span>
                 </h2>
               </div>
-              <Link to="/products" className="hidden md:flex items-center gap-1 text-green-700 font-semibold hover:gap-3 transition-all">
+              <Link to="/products" className="hidden md:flex items-center gap-1 text-primary font-semibold hover:gap-3 transition-all">
                 View All <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
@@ -438,7 +434,7 @@ export default function Home() {
 
             <div className="text-center mt-12">
               <Link to="/products">
-                <button className="inline-flex items-center gap-3 px-12 py-4 bg-slate-900 hover:bg-green-700 text-white font-bold rounded-full text-base transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <button className="inline-flex items-center gap-3 px-12 py-4 bg-slate-900 hover:bg-primary text-white font-bold rounded-full text-base transition-all duration-300 hover:scale-105 hover:shadow-xl">
                   View All Products <ArrowRight className="h-4 w-4" />
                 </button>
               </Link>
@@ -451,9 +447,9 @@ export default function Home() {
       <section className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
-            <p className="text-green-700 font-semibold text-sm tracking-widest uppercase mb-2">Our Promise</p>
+            <p className="text-primary font-semibold text-sm tracking-widest uppercase mb-2">Our Promise</p>
             <h2 className="text-4xl md:text-5xl font-serif font-black text-slate-900">
-              Why Choose <span className="text-green-700">Divyaveda?</span>
+              Why Choose <span className="text-primary">Divyaveda?</span>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

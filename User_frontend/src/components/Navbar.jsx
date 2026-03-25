@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { ShoppingBag, User, Menu, Search, X, LogOut } from 'lucide-react';
+import { ShoppingBag, User, Menu, Search, X, LogOut, ChevronRight } from 'lucide-react';
 import Button from "./Button";
 import { useState, useEffect, useRef } from "react";
 
@@ -16,8 +16,16 @@ const Navbar = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const searchRef = useRef(null);
   const mobileSearchRef = useRef(null);
+
+  // Handle scroll effect for glass navbar
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -81,76 +89,89 @@ const Navbar = () => {
     navigate(`/product/${product._id}`);
   };
 
-  /* Shared suggestion dropdown markup — used by both desktop & mobile */
+  /* Shared suggestion dropdown markup */
   const SuggestionDropdown = () => !showSuggestions ? null : (
-    <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
+    <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 transform transition-all duration-200 origin-top">
       {loadingSuggestions ? (
-        <div className="p-4 text-center text-sm text-slate-400">Searching...</div>
+        <div className="p-6 text-center text-sm text-slate-400 flex items-center justify-center gap-2">
+           <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+           Searching...
+        </div>
       ) : suggestions.length === 0 ? (
-        <div className="p-4 text-center text-sm text-slate-400">No products found</div>
+        <div className="p-6 text-center text-sm text-slate-400">No products found for "{searchQuery}"</div>
       ) : (
-        <>
+        <div className="py-2">
           {suggestions.map(product => (
             <button
               key={product._id}
               type="button"
               onClick={() => handleSuggestionClick(product)}
-              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
+              className="group flex items-center gap-4 w-full px-4 py-3 hover:bg-slate-50 transition-colors text-left"
             >
-              <img
-                src={product.main_image || "https://placehold.co/40x40?text=P"}
-                alt={product.name}
-                className="h-10 w-10 rounded-lg object-cover bg-slate-100 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{product.name || product.title}</p>
-                <p className="text-xs text-green-700 font-semibold">₹{product.diplayPrice || product.price}</p>
+              <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 group-hover:border-primary/20 transition-colors">
+                <img
+                  src={product.main_image || "https://placehold.co/48x48?text=P"}
+                  alt={product.name}
+                  className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
               </div>
+              <div className="flex-1 min-w-0 pr-4">
+                <p className="text-sm font-medium text-slate-900 truncate group-hover:text-primary transition-colors">{product.name || product.title}</p>
+                <p className="text-sm text-primary font-semibold mt-0.5">₹{product.diplayPrice || product.price}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transform group-hover:translate-x-1 transition-all" />
             </button>
           ))}
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="flex items-center justify-center gap-2 w-full py-3 text-sm text-green-700 font-medium hover:bg-green-50 transition-colors"
-          >
-            <Search className="h-3.5 w-3.5" />
-            See all results for &ldquo;{searchQuery}&rdquo;
-          </button>
-        </>
+          <div className="px-4 py-3 mt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="flex items-center justify-center w-full py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5"
+            >
+              See all results
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm">
+      <header 
+        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm py-2' 
+            : 'bg-white/50 backdrop-blur-md border-b border-white/20 py-4'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 sm:h-20 items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 transition-all duration-300">
             {/* Logo */}
             <div className="flex items-center shrink-0">
               <button 
-                className="md:hidden mr-2 p-2 text-slate-600 hover:bg-slate-50 rounded-lg"
+                className="lg:hidden mr-3 p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                 onClick={() => setIsMenuOpen(true)}
               >
                  <Menu className="h-6 w-6" />
               </button>
-              <Link to="/" className="flex items-center gap-2">
-                <span className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                  Divya<span className="text-green-700">veda</span>
+              <Link to="/" className="flex items-center gap-2 group">
+                <span className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 tracking-tight flex items-center">
+                  Divya<span className="text-primary group-hover:text-secondary transition-colors duration-300">veda</span>
                 </span>
               </Link>
             </div>
 
-            {/* Desktop Navigation & Search (Centered) */}
-            <div className="hidden md:flex flex-1 items-center justify-center px-8 gap-8">
-               <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
-                  <Link to="/" className="hover:text-green-700 transition-colors">Home</Link>
-                  <Link to="/products" className="hover:text-green-700 transition-colors">Shop</Link>
+            {/* Desktop Navigation & Search */}
+            <div className="hidden lg:flex flex-1 items-center justify-center px-10 gap-10">
+               <nav className="flex items-center gap-8 text-[15px] font-medium text-slate-600">
+                  <Link to="/" className="hover:text-primary transition-colors hover:scale-105 active:scale-95 transform">Home</Link>
+                  <Link to="/products" className="hover:text-primary transition-colors hover:scale-105 active:scale-95 transform">Shop</Link>
                   {navCategories.map(cat => (
                     <Link
                       key={cat._id}
                       to={`/products?category=${cat._id}`}
-                      className="hover:text-green-700 transition-colors capitalize"
+                      className="hover:text-primary transition-colors capitalize hover:scale-105 active:scale-95 transform"
                     >
                       {cat.name}
                     </Link>
@@ -158,71 +179,34 @@ const Navbar = () => {
                </nav>
                
                {/* Search with suggestions */}
-               <form onSubmit={handleSearch} className="relative w-full max-w-sm" ref={searchRef}>
-                  <div className="relative">
+               <form onSubmit={handleSearch} className="relative w-full max-w-md group" ref={searchRef}>
+                  <div className="relative flex items-center">
                     <input
                       type="text"
-                      className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 transition-all placeholder:text-slate-400"
-                      placeholder="Search for products..."
+                      className="w-full pl-5 pr-12 py-2.5 bg-slate-100/50 backdrop-blur-sm border border-slate-200/60 rounded-full text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-300 placeholder:text-slate-400 shadow-inner"
+                      placeholder="Search natural products..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                       onKeyDown={(e) => e.key === "Escape" && setShowSuggestions(false)}
                       autoComplete="off"
                     />
-                    <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-green-600">
+                    <button 
+                      type="submit" 
+                      className="absolute right-2 p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-full transition-all"
+                    >
                       <Search className="h-4 w-4" />
                     </button>
                   </div>
-
-                  {/* Suggestions dropdown */}
-                  {showSuggestions && (
-                    <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
-                      {loadingSuggestions ? (
-                        <div className="p-4 text-center text-sm text-slate-400">Searching...</div>
-                      ) : suggestions.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-slate-400">No products found</div>
-                      ) : (
-                        <>
-                          {suggestions.map(product => (
-                            <button
-                              key={product._id}
-                              type="button"
-                              onClick={() => handleSuggestionClick(product)}
-                              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
-                            >
-                              <img
-                                src={product.main_image || "https://placehold.co/40x40?text=P"}
-                                alt={product.name}
-                                className="h-10 w-10 rounded-lg object-cover bg-slate-100 shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-900 truncate">{product.name || product.title}</p>
-                                <p className="text-xs text-green-700 font-semibold">₹{product.diplayPrice || product.price}</p>
-                              </div>
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={handleSearch}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-sm text-green-700 font-medium hover:bg-green-50 transition-colors"
-                          >
-                            <Search className="h-3.5 w-3.5" />
-                            See all results for "{searchQuery}"
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                  <SuggestionDropdown />
                </form>
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-
+            <div className="flex items-center gap-2 sm:gap-5 shrink-0">
                {/* Mobile search toggle */}
                <button
-                 className="md:hidden p-2 text-slate-600 hover:text-green-700 transition-colors rounded-lg"
+                 className="lg:hidden p-2 text-slate-600 hover:text-primary hover:bg-slate-50 transition-all rounded-full"
                  onClick={() => { setMobileSearchOpen(v => !v); setShowSuggestions(false); }}
                  aria-label="Search"
                >
@@ -230,118 +214,157 @@ const Navbar = () => {
                </button>
 
                {/* Cart — always visible */}
-               <Link to="/cart" className="relative p-2 text-slate-600 hover:text-green-700 transition-colors">
-                 <ShoppingBag className="h-5 w-5" />
+               <Link 
+                 to="/cart" 
+                 className="relative p-2 text-slate-600 hover:text-primary hover:bg-primary/5 transition-all rounded-full group"
+               >
+                 <ShoppingBag className="h-[22px] w-[22px] group-hover:scale-110 transition-transform" />
                  {cartCount > 0 && (
-                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-[10px] font-bold text-white ring-2 ring-white">
+                   <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 min-w-[18px] items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-white ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
                      {cartCount}
                    </span>
                  )}
                </Link>
 
                {user ? (
-                <Link to="/profile" className="flex items-center gap-2 group pl-1 sm:pl-4 sm:border-l border-slate-200">
-                   <div className="h-8 w-8 bg-green-50 text-green-700 rounded-full flex items-center justify-center text-sm font-bold border border-green-100 group-hover:bg-green-100 transition-colors shrink-0">
-                     {user.username?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
-                   </div>
-                </Link>
+                <div className="flex items-center">
+                  <div className="hidden sm:block w-px h-8 bg-slate-200/60 mx-2"></div>
+                  <Link to="/profile" className="flex items-center gap-2 group p-1 hover:bg-slate-50 rounded-full transition-colors">
+                     <div className="h-9 w-9 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold border border-primary/20 group-hover:bg-primary group-hover:text-white group-hover:scale-105 transition-all shadow-sm">
+                       {user.username?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                     </div>
+                  </Link>
+                </div>
                ) : (
-                 <div className="flex items-center gap-2">
-                   <Link to="/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-green-700">
+                 <div className="flex items-center gap-3">
+                   <div className="hidden sm:block w-px h-8 bg-slate-200/60 mx-1"></div>
+                   <Link to="/login" className="hidden sm:flex text-[15px] font-medium text-slate-600 hover:text-primary transition-colors">
                      Login
                    </Link>
                    <Link to="/register">
-                     <button className="text-xs sm:text-sm px-3 sm:px-5 py-2 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-full transition-colors whitespace-nowrap">
+                     <button className="text-sm px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-semibold rounded-full transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap active:scale-95">
                        <span className="sm:hidden">Join</span>
-                       <span className="hidden sm:inline">Get Started</span>
+                       <span className="hidden sm:inline">Sign up</span>
                      </button>
                    </Link>
                  </div>
                )}
             </div>
-
           </div>
         </div>
       </header>
 
-      {/* Mobile Search Bar (drops below header on mobile) */}
-      {mobileSearchOpen && (
-        <div className="md:hidden bg-white border-b border-slate-100 px-4 pb-3 pt-2 shadow-md">
+      {/* Mobile Search Bar Wrapper */}
+      <div 
+        className={`md:hidden overflow-hidden transition-all duration-300 ${
+          mobileSearchOpen ? 'max-h-24 border-b border-slate-100 shadow-sm opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="bg-white px-4 py-3">
           <form onSubmit={handleSearch} className="relative" ref={mobileSearchRef}>
             <input
               type="text"
-              autoFocus
-              className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-full text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 placeholder:text-slate-400"
-              placeholder="Search for products..."
+              autoFocus={mobileSearchOpen}
+              className="w-full pl-5 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-full text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400 shadow-inner"
+              placeholder="Search natural products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && setMobileSearchOpen(false)}
               autoComplete="off"
             />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-green-600">
-              <Search className="h-4 w-4" />
+            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-primary rounded-full">
+              <Search className="h-5 w-5" />
             </button>
             <SuggestionDropdown />
           </form>
         </div>
-      )}
+      </div>
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden print:hidden">
-           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
-           <div className="fixed inset-y-0 left-0 w-[280px] bg-white shadow-xl p-6 flex flex-col gap-6 animate-in slide-in-from-left duration-200">
-              <div className="flex items-center justify-between">
-                 <span className="text-xl font-serif font-bold text-slate-900">Divyaveda</span>
-                 <button onClick={() => setIsMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-[100] lg:hidden">
+           <div 
+             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" 
+             onClick={() => setIsMenuOpen(false)} 
+           />
+           <div className="fixed inset-y-0 left-0 w-[300px] max-w-[80vw] bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                 <span className="text-2xl font-serif font-bold text-slate-900 tracking-tight">
+                   Divya<span className="text-primary">veda</span>
+                 </span>
+                 <button 
+                   onClick={() => setIsMenuOpen(false)} 
+                   className="p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+                 >
                    <X className="h-5 w-5" />
                  </button>
               </div>
               
-              <nav className="flex flex-col gap-4">
-                 <Link to="/" className="text-lg font-medium text-slate-800 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>Home</Link>
-                 <Link to="/products" className="text-lg font-medium text-slate-800 hover:text-green-700" onClick={() => setIsMenuOpen(false)}>All Products</Link>
-                 <hr className="border-slate-100" />
-                 {navCategories.map(cat => (
-                   <Link
-                     key={cat._id}
-                     to={`/products?category=${cat._id}`}
-                     className="font-medium text-slate-600 hover:text-green-700 capitalize"
+              <div className="flex-1 overflow-y-auto py-6 px-4">
+                <nav className="flex flex-col gap-2">
+                   <Link 
+                     to="/" 
+                     className="px-4 py-3 text-[17px] font-medium text-slate-800 hover:text-primary hover:bg-primary/5 rounded-xl transition-all" 
                      onClick={() => setIsMenuOpen(false)}
                    >
-                     {cat.name}
+                     Home
                    </Link>
-                 ))}
-              </nav>
+                   <Link 
+                     to="/products" 
+                     className="px-4 py-3 text-[17px] font-medium text-slate-800 hover:text-primary hover:bg-primary/5 rounded-xl transition-all" 
+                     onClick={() => setIsMenuOpen(false)}
+                   >
+                     All Products
+                   </Link>
+                   
+                   <div className="my-3 border-t border-slate-100"></div>
+                   
+                   <div className="px-4 pb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Categories</div>
+                   {navCategories.map(cat => (
+                     <Link
+                       key={cat._id}
+                       to={`/products?category=${cat._id}`}
+                       className="px-4 py-2.5 text-[15px] font-medium text-slate-600 hover:text-primary hover:bg-primary/5 rounded-xl transition-all capitalize"
+                       onClick={() => setIsMenuOpen(false)}
+                     >
+                       {cat.name}
+                     </Link>
+                   ))}
+                </nav>
+              </div>
 
-              <div className="mt-auto">
+              <div className="p-6 border-t border-slate-100 bg-slate-50">
                  {user ? (
                    <div className="space-y-4">
-                     <Link to="/profile" className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl" onClick={() => setIsMenuOpen(false)}>
-                        <div className="h-10 w-10 bg-white text-green-700 rounded-full flex items-center justify-center text-lg font-bold shadow-sm">
+                     <Link 
+                       to="/profile" 
+                       className="flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow group" 
+                       onClick={() => setIsMenuOpen(false)}
+                     >
+                        <div className="h-12 w-12 bg-primary/10 text-primary rounded-full flex items-center justify-center text-lg font-bold group-hover:bg-primary group-hover:text-white transition-colors">
                           {user.username?.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-900">{user.username}</p>
-                          <p className="text-xs text-slate-500">View Profile</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-semibold text-slate-900 truncate">{user.username}</p>
+                          <p className="text-sm text-primary font-medium">View Profile</p>
                         </div>
                      </Link>
                      <Button 
                         variant="outline" 
-                        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100"
+                        className="w-full py-3 text-[15px] font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-xl transition-all flex items-center justify-center gap-2"
                         onClick={() => { logout(); setIsMenuOpen(false); }}
                      >
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <LogOut className="h-[18px] w-[18px]" />
                         Log Out
                      </Button>
                    </div>
                  ) : (
                    <div className="grid grid-cols-2 gap-3">
                       <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                        <Button variant="outline" className="w-full">Login</Button>
+                        <Button variant="outline" className="w-full py-3 text-[15px] font-medium border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl">Label</Button>
                       </Link>
                       <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                        <Button className="w-full bg-green-700">Sign up</Button>
+                        <Button className="w-full py-3 text-[15px] font-semibold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-md">Sign up</Button>
                       </Link>
                    </div>
                  )}
@@ -354,8 +377,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-
-
-
-

@@ -14,7 +14,7 @@ import {
 
 const RatingBadge = ({ rating = 4.3, count = 124 }) => (
   <div className="flex items-center gap-2 flex-wrap">
-    <div className="flex items-center gap-1 bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded">
+    <div className="flex items-center gap-1 bg-primary text-white text-white text-xs font-bold px-2 py-0.5 rounded">
       <span>{rating}</span>
       <Star className="h-3 w-3 fill-white" />
     </div>
@@ -87,7 +87,7 @@ export default function ProductDetail() {
   if (loading) return (
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="space-y-3 text-center">
-        <div className="h-10 w-10 mx-auto animate-spin rounded-full border-4 border-green-500 border-t-transparent" />
+        <div className="h-10 w-10 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-slate-400 text-sm">Loading…</p>
       </div>
     </div>
@@ -97,7 +97,7 @@ export default function ProductDetail() {
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center px-4">
       <Package size={56} className="text-slate-200" />
       <h2 className="text-xl font-bold text-slate-800">Product not found</h2>
-      <button onClick={() => navigate("/products")} className="px-6 py-2.5 rounded-full bg-green-600 text-white font-semibold text-sm">
+      <button onClick={() => navigate("/products")} className="px-6 py-2.5 rounded-full bg-primary text-white text-white font-semibold text-sm">
         Browse Products
       </button>
     </div>
@@ -151,13 +151,13 @@ export default function ProductDetail() {
       <div className="bg-white border-b border-slate-100 px-4 sm:px-6 lg:px-8 py-2.5">
         <div className="max-w-7xl mx-auto">
           <nav className="flex items-center gap-1 text-xs text-slate-400 flex-wrap">
-            <Link to="/" className="hover:text-green-700 shrink-0">Home</Link>
+            <Link to="/" className="hover:text-primary shrink-0">Home</Link>
             <ChevronRight size={11} className="shrink-0" />
-            <Link to="/products" className="hover:text-green-700 shrink-0">Products</Link>
+            <Link to="/products" className="hover:text-primary shrink-0">Products</Link>
             {product.category_id?.name && (
               <>
                 <ChevronRight size={11} className="shrink-0" />
-                <Link to={`/products?category=${product.category_id._id}`} className="hover:text-green-700 capitalize shrink-0">
+                <Link to={`/products?category=${product.category_id._id}`} className="hover:text-primary capitalize shrink-0">
                   {product.category_id.name}
                 </Link>
               </>
@@ -216,7 +216,7 @@ export default function ProductDetail() {
                       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
                         {imgs.map((_, i) => (
                           <button key={i} onClick={() => setActiveImg(i)}
-                            className={`h-1.5 rounded-full transition-all ${activeImg === i ? "w-4 bg-green-600" : "w-1.5 bg-slate-300"}`}
+                            className={`h-1.5 rounded-full transition-all ${activeImg === i ? "w-4 bg-primary text-white" : "w-1.5 bg-slate-300"}`}
                           />
                         ))}
                       </div>
@@ -230,7 +230,7 @@ export default function ProductDetail() {
                     {imgs.map((img, i) => (
                       <button key={i} onClick={() => setActiveImg(i)}
                         className={`shrink-0 h-14 w-14 rounded-lg border-2 overflow-hidden transition-all ${
-                          activeImg === i ? "border-green-500 ring-1 ring-green-200" : "border-slate-200"
+                          activeImg === i ? "border-primary ring-1 ring-primary/20" : "border-slate-200"
                         }`}
                       >
                         <img src={img} alt="" className="w-full h-full object-cover" />
@@ -290,14 +290,14 @@ export default function ProductDetail() {
                   <div className="flex gap-3 mt-5">
                     <button
                       onClick={handleAddToCart} disabled={isAdding || !inStock}
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full bg-amber-400 hover:bg-amber-500 disabled:bg-slate-200 text-slate-900 font-bold text-sm transition-all active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:bg-slate-200 text-slate-900 font-bold text-sm transition-all active:scale-95"
                     >
                       <ShoppingCart size={17} />
                       {isAdding ? "Adding…" : inStock ? "ADD TO CART" : "OUT OF STOCK"}
                     </button>
                     <button
                       onClick={handleBuyNow} disabled={isBuying || !inStock}
-                      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 text-white font-bold text-sm transition-all active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 disabled:bg-slate-200 text-white font-bold text-sm transition-all active:scale-95"
                     >
                       <Zap size={17} />
                       {isBuying ? "…" : "BUY NOW"}
@@ -348,13 +348,13 @@ export default function ProductDetail() {
                   {mrp > price && (
                     <>
                       <span className="text-base text-slate-400 line-through">₹{mrp.toLocaleString()}</span>
-                      <span className="text-sm text-green-600 font-bold">{discount}% off</span>
+                      <span className="text-sm text-primary font-bold">{discount}% off</span>
                     </>
                   )}
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">Inclusive of all taxes</p>
                 <div className="flex items-center gap-1.5 mt-2">
-                  <Tag size={13} className="text-green-600 shrink-0" />
+                  <Tag size={13} className="text-primary shrink-0" />
                   <p className="text-xs text-slate-600"><span className="font-semibold">Free shipping</span> on orders above ₹500</p>
                 </div>
               </div>
@@ -362,7 +362,7 @@ export default function ProductDetail() {
               {/* Stock status */}
               <div>
                 {inStock ? (
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${lowStock ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${lowStock ? "bg-orange-100 text-orange-700" : "bg-primary/10 text-primary"}`}>
                     <CheckCircle2 size={11} />
                     {lowStock ? `Only ${product.stock_quantity} left!` : "In Stock"}
                   </span>
@@ -420,8 +420,8 @@ export default function ProductDetail() {
                   { Icon: RefreshCw,   title: "7-Day Returns",    sub: "Easy, hassle-free return policy" },
                 ].map(({ Icon, title, sub }) => (
                   <div key={title} className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 rounded-lg shrink-0">
-                      <Icon size={15} className="text-green-700" />
+                    <div className="p-2 bg-primary/5 rounded-lg shrink-0">
+                      <Icon size={15} className="text-primary" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{title}</p>
@@ -459,7 +459,7 @@ export default function ProductDetail() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-5 sm:px-8 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
-                  activeTab === tab.id ? "border-green-600 text-green-700" : "border-transparent text-slate-400 hover:text-slate-700"
+                  activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-700"
                 }`}
               >
                 {tab.label}
@@ -480,7 +480,7 @@ export default function ProductDetail() {
                 ? <ul className="space-y-3">
                     {advantages.map((adv, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                        <span className="shrink-0 h-5 w-5 bg-green-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center mt-0.5">{i + 1}</span>
+                        <span className="shrink-0 h-5 w-5 bg-primary text-white text-white text-[10px] font-bold rounded-full flex items-center justify-center mt-0.5">{i + 1}</span>
                         {adv}
                       </li>
                     ))}
@@ -517,7 +517,7 @@ export default function ProductDetail() {
           <div className="px-4 sm:px-0 py-6 pb-28 lg:pb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-bold text-slate-900">You May Also Like</h2>
-              <Link to="/products" className="text-sm text-green-700 font-medium hover:underline flex items-center gap-0.5">
+              <Link to="/products" className="text-sm text-primary font-medium hover:underline flex items-center gap-0.5">
                 View All <ChevronRight size={14} />
               </Link>
             </div>
@@ -555,7 +555,7 @@ export default function ProductDetail() {
             {/* Add to Cart */}
             <button
               onClick={handleAddToCart} disabled={isAdding}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 disabled:opacity-60 text-slate-900 font-bold rounded-xl text-xs transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 active:bg-amber-600 disabled:opacity-60 text-slate-900 font-bold rounded-xl text-xs transition-colors"
             >
               <ShoppingCart size={14} />
               {isAdding ? "…" : "Add"}
@@ -563,7 +563,7 @@ export default function ProductDetail() {
             {/* Buy Now */}
             <button
               onClick={handleBuyNow} disabled={isBuying}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 active:bg-orange-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition-colors"
             >
               <Zap size={14} />
               {isBuying ? "…" : "Buy Now"}

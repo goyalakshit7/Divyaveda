@@ -4,45 +4,50 @@
 
 @layer base {
   :root {
-    /* Light/Nature Theme */
-    --background: 210 40% 98%;
-    /* slate-50 */
-    --foreground: 222.2 84% 4.9%;
-    /* slate-950 */
+    /* Ayurvedic Premium Theme */
+    --background: 60 30% 98%; /* Warm off-white */
+    --foreground: 150 20% 15%;
 
     --card: 0 0% 100%;
-    /* white */
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 150 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 150 20% 15%;
 
-    --primary: 215 25% 27%;
-    /* slate-700/800 - Deep Blue/Grey */
-    --primary-foreground: 210 40% 98%;
+    --primary: 158 60% 35%; /* Premium Earthy Green */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 40 80% 55%; /* Warm Golden/Orange */
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 100 20% 94%; /* Soft sage background */
+    --muted-foreground: 150 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 35 60% 93%; /* Light warm accent */
+    --accent-foreground: 30 70% 20%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 150 15% 85%;
+    --input: 150 15% 85%;
+    --ring: 158 60% 35%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   body {
     @apply bg-background text-foreground tracking-wide font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/75 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.06)];
+  }
+  .glass-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-lg;
   }
 }
 

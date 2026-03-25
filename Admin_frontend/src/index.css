@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+@import "./styles/theme.css";
 /* CSS Variables for Light/Dark Theme */
 :root[data-theme="light"] {
   --bg-primary: #ffffff;
