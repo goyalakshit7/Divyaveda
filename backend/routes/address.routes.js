@@ -10,13 +10,13 @@ import { isAuthenticated } from "../middleware/isAuthenticated.js";
 
 const router = express.Router();
 
-// All routes require authentication
+
 router.use(isAuthenticated);
 
 // Get all addresses for logged-in user
 router.get("/", getUserAddresses);
 
-// Create new address
+
 router.post("/", createAddress);
 
 // Update address
